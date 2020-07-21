@@ -1,11 +1,13 @@
-import os, time
-import cv2
+import os, time, cv2, random
+import numpy as np
 from win32api import GetSystemMetrics
 from PIL import ImageGrab
-import pyautogui
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import pyautogui as pg
 
 ROOT = os.getcwd()
-replay_button = (818, 305)
+reset_button = (818, 305) #beginner
 
 def get_res():
     res = (GetSystemMetrics(0), GetSystemMetrics(1))
@@ -16,7 +18,7 @@ def get_res():
 
 def screenGrab():
     #beginner
-    box = (692, 267, 945, 584)
+    box = (706, 347, 930, 971)
     # expert box = (686, 267, 1463, 759)
     '''res = (GetSystemMetrics(0), GetSystemMetrics(1))
 
@@ -26,16 +28,32 @@ def screenGrab():
     box = (pad*3, pad, res[0]-pad*3, res[1]-pad)'''
 
     im = ImageGrab.grab(box)
-    im.save(f'{ROOT}/full_screen.png', 'PNG')
+    im.save(f'{ROOT}/board.png', 'PNG')
 
-def calibrate():
-    img = cv2.imread(f'{ROOT}/full_screen.png')
+def click_random():
+    corners = [(717, 358), (717, 558), (917, 358), (917, 558)]
+    move = random.choice(corners)
+    corners.remove(move)
+    pg.click(x=move[0], y=move[1], duration=2)
+
+def game_reset():
+    pg.click(x=reset_button[0], y=reset_button[1], duration=2)
+
+def sweep(board):
+    prev_board = []
+    while not np.array_equal(board, prev_board):
+        click_random()
+        prev_board = board
+        screenGrab()
+        board = mpimg.imread('board.png')
+    game_reset()
 
 def main():
 
-    pyautogui.FAILSAFE = True
+    pg.FAILSAFE = True
     screenGrab()
-    #screenGrab()
+    board = mpimg.imread('board.png')
+    sweep(board)
 
 if __name__ == '__main__':
     main()
