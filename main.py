@@ -17,7 +17,8 @@ def get_res():
     print(type(im))
 
 def screenGrab():
-    #beginner
+    # get bounding box for minesweeper prev_board
+    # beginner coordinates:
     box = (706, 347, 930, 971)
     # expert box = (686, 267, 1463, 759)
     '''res = (GetSystemMetrics(0), GetSystemMetrics(1))
