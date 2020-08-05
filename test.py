@@ -47,3 +47,7 @@ def get_state(bbox):
 x,y = tiles[0][0], tiles[0][1]
 
 pg.click(x,y)
+
+def reset():
+    loc = pg.locateOnScreen(f'{IMGS}/oof.png')
+    pg.click(loc)
