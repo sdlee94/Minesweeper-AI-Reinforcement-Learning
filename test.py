@@ -6,21 +6,22 @@ ROOT = os.getcwd()
 IMGS = f'{ROOT}/pics'
 
 TILES = {
-    'U': Image.open(f'{IMGS}/unsolved.png'),
-    '0': Image.open(f'{IMGS}/zero.png'),
-    '1': Image.open(f'{IMGS}/one.png'),
-    '2': Image.open(f'{IMGS}/two.png'),
-    '3': Image.open(f'{IMGS}/three.png'),
-    '4': Image.open(f'{IMGS}/four.png'),
-    '5': Image.open(f'{IMGS}/five.png'),
-    '6': Image.open(f'{IMGS}/six.png'),
-    '7': Image.open(f'{IMGS}/seven.png'),
-    '8': Image.open(f'{IMGS}/eight.png'),
-    'M': Image.open(f'{IMGS}/mine.png'),
+    'U': f'{IMGS}/unsolved.png',
+    '0': f'{IMGS}/zero.png',
+    '1': f'{IMGS}/one.png',
+    '2': f'{IMGS}/two.png',
+    '3': f'{IMGS}/three.png',
+    '4': f'{IMGS}/four.png',
+    '5': f'{IMGS}/five.png',
+    '6': f'{IMGS}/six.png',
+    '7': f'{IMGS}/seven.png',
+    '8': f'{IMGS}/eight.png',
+    'M': f'{IMGS}/mine.png',
 }
 
 class Minesweeper:
     def __init__(self, TILES):
+        #self.reset()
         self.TILES = TILES
         self.loc = self.find_board()
         self.state = self.get_state(self.loc)
@@ -29,6 +30,14 @@ class Minesweeper:
         self.ntiles = self.nrows*self.ncols
         self.scaled = self.scale_state(self.state)
         self.n_solved_ = 0
+
+    '''def reset(self):
+        # restart game
+        try:
+            loc = pg.locateOnScreen(f'{IMGS}/oof.png')
+        except:
+            loc = pg.locateOnScreen(f'{IMGS}/reset.png')
+        pg.click(loc, duration=0.3)'''
 
     def find_board(self):
         # obtain coordinates for Minesweeper board
@@ -73,37 +82,34 @@ class Minesweeper:
         # number of solved tiles prior to move (initialized at 0)
         self.n_solved = self.n_solved_
 
-        pg.click(self.state[action_index]['coord'], duration=0.3)
-
-        new_state = self.get_state(self.loc)
-        print(new_state)
-        new_state = self.scale_state(new_state)
-
-        # update number of solved tiles
-        self.n_solved_ = self.ntiles - np.sum(self.scaled == -1)
+        pg.click(self.state[action_index]['coord'], duration=0.2)
 
         if pg.locateOnScreen(f'{IMGS}/oof.png', region=self.loc) != None: # if lose
             reward = -1
             done = True
 
-        elif pg.locateOnScreen(f'{IMGS}/gg.png', region=self.loc) != None: # if win
-            reward = 1
-            done = True
+        else:
+            new_state = self.get_state(self.loc)
+            new_state = self.scale_state(new_state)
 
-        elif self.n_solved_ > self.n_solved: # if progress
-            reward = 0.9
+            # update number of solved tiles
+            self.n_solved_ = self.ntiles - np.sum(self.scaled == -1)
 
-        elif self.n_solved_ == self.n_solved: # if no progress
-            reward = -0.3
+            if pg.locateOnScreen(f'{IMGS}/gg.png', region=self.loc) != None: # if win
+                reward = 1
+                done = True
+
+            elif self.n_solved_ > self.n_solved: # if progress
+                reward = 0.9
+                done = False
+
+            elif self.n_solved_ == self.n_solved: # if no progress
+                reward = -0.3
+                done = False
 
         print(reward, done, end='\r')
         return done
         #return new_state, reward, done
-
-    def reset():
-        # restart game
-        loc = pg.locateOnScreen(f'{IMGS}/oof.png')
-        pg.click(loc)
 
 x,y = tiles[0][0], tiles[0][1]
 
