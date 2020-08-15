@@ -40,7 +40,8 @@ TILES = {
 
 class Minesweeper:
     def __init__(self):
-        #self.reset()
+        self.reset()
+        
         self.TILES = TILES
         self.loc = self.find_board()
         self.state = self.get_state(self.loc)
@@ -57,6 +58,14 @@ class Minesweeper:
         # target model - this is what we predict against every step
         self.target_model = self.create_dqn(LEARN_RATE, self.scaled.shape, self.ntiles)
         self.target_model.set_weights(self.model.get_weights())
+
+    def reset(self):
+        # restart game
+        try:
+            loc = pg.locateOnScreen(f'{IMGS}/oof.png')
+        except:
+            loc = pg.locateOnScreen(f'{IMGS}/reset.png')
+        pg.click(loc, duration=0.3)
 
     def find_board(self):
         # obtain coordinates for Minesweeper board
@@ -106,21 +115,24 @@ class Minesweeper:
 
     def step(self, action_index):
 
+        done = False
+
         # number of solved tiles prior to move (initialized at 0)
         self.n_solved = self.n_solved_
 
-        pg.click(self.state[action_index]['coord'], duration=0.2)
+        pg.click(self.board[action_index]['coord']) #, duration=0.1
 
         if pg.locateOnScreen(f'{IMGS}/oof.png', region=self.loc) != None: # if lose
             reward = -1
             done = True
+            self.n_solved_ = 0
 
         else:
-            new_state = self.get_state(self.loc)
-            new_state = self.scale_state(new_state)
+            self.board = self.get_board(self.loc)
+            self.state = self.get_state(self.board)
 
             # update number of solved tiles
-            self.n_solved_ = self.ntiles - np.sum(self.scaled == -1)
+            self.n_solved_ = self.ntiles - np.sum(self.state == -1)
 
             if pg.locateOnScreen(f'{IMGS}/gg.png', region=self.loc) != None: # if win
                 reward = 1
@@ -128,34 +140,22 @@ class Minesweeper:
 
             elif self.n_solved_ > self.n_solved: # if progress
                 reward = 0.9
-                done = False
 
             elif self.n_solved_ == self.n_solved: # if no progress
-                reward = -0.3
-                done = False
+                reward = -0.9
 
-        print(reward, done, end='\r')
-        return done
-        #return new_state, reward, done
+        return self.state, reward, done
 
-    def remember(self, state, action, reward, new_state, done)
-        self.memory.store_transition(state, action, reward, new_state, done)
-
-    def choose_move(self, state):
+    def get_action(self, state):
         rand = np.random.random() # random value b/w 0 & 1
 
         if rand < self.epsilon: # random move (explore)
             move = np.random.randint(self.ntiles)
         else:
-            moves = self.model.predict(state)
+            moves = self.model.predict(np.array(self.state).reshape(-1, *self.state.shape))
             move = np.argmax(moves)
 
         return move
 
-    def reset(self):
-        # restart game
-        try:
-            loc = pg.locateOnScreen(f'{IMGS}/oof.png')
-        except:
-            loc = pg.locateOnScreen(f'{IMGS}/reset.png')
-        pg.click(loc, duration=0.3)
+    def update_replay_memory(self, transition):
+        self.replay_memory.append(transition)
