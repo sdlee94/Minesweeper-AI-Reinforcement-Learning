@@ -2,8 +2,26 @@ import os
 import pyautogui as pg
 from PIL import Image
 
+# CONSTANTS ====
+
+# Directories
 ROOT = os.getcwd()
 IMGS = f'{ROOT}/pics'
+
+# Training settings
+MEM_SIZE = 50_000
+MEM_SIZE_MIN = 1_000
+LEARN_RATE = 0.001
+BATCH_SIZE = 64
+DISCOUNT = 0.99
+
+# Exploration settings
+epsilon = 1  # not a constant, going to be decayed
+EPSILON_DECAY = 0.99975
+MIN_EPSILON = 0.001
+
+# Environment settings
+EPISODES = 20_000
 
 TILES = {
     'U': f'{IMGS}/unsolved.png',
@@ -18,9 +36,10 @@ TILES = {
     '8': f'{IMGS}/eight.png',
     'M': f'{IMGS}/mine.png',
 }
+# ====
 
 class Minesweeper:
-    def __init__(self, TILES):
+    def __init__(self):
         #self.reset()
         self.TILES = TILES
         self.loc = self.find_board()
@@ -31,13 +50,13 @@ class Minesweeper:
         self.scaled = self.scale_state(self.state)
         self.n_solved_ = 0
 
-    '''def reset(self):
-        # restart game
-        try:
-            loc = pg.locateOnScreen(f'{IMGS}/oof.png')
-        except:
-            loc = pg.locateOnScreen(f'{IMGS}/reset.png')
-        pg.click(loc, duration=0.3)'''
+        #self.memory = ReplayBuffer(MEM_SIZE, self.scaled.shape, self.ntiles)
+
+        self.model = create_dqn(LEARN_RATE, self.scaled.shape, self.ntiles)
+
+        # target model - this is what we predict against every step
+        self.target_model = self.create_dqn(LEARN_RATE, self.scaled.shape, self.ntiles)
+        self.target_model.set_weights(self.model.get_weights())
 
     def find_board(self):
         # obtain coordinates for Minesweeper board
@@ -52,7 +71,11 @@ class Minesweeper:
 
         return board
 
-    def get_state(self, bbox):
+    def get_board(self, bbox):
+        '''
+        Gets the state of the board as a dictionary of coordinates and values,
+        ordered from left to right, top to bottom
+        '''
         all_tiles = [[t, list(pg.locateAllOnScreen(self.TILES[t], region=bbox))] for t in self.TILES]
 
         tiles = []
@@ -62,20 +85,24 @@ class Minesweeper:
 
         tiles = sorted(tiles, key=lambda x: (x['coord'][1], x['coord'][0]))
 
-        return tiles #{i: {'coord': tile['coord'], 'value': tile['value'], 'action': None} for i, tile in enumerate(tiles)}
+        return tiles
 
-    def scale_state(self, state):
-        state = [t['value'] for t in state]
-        state = np.reshape(state, (self.nrows, self.ncols, 1))
+    def get_state(self, board):
+        '''
+        Gets the numeric image representation state of the board.
+        This is what will be the input for the DQN.
+        '''
+        board_2d = [t['value'] for t in board]
+        board_2d = np.reshape(board_2d, (self.nrows, self.ncols, 1))
 
-        scaled = np.zeros((self.nrows, self.ncols, 1))
-        scaled[state=='U'] = -1
-        scaled[state=='0'] = 0
+        state = np.zeros((self.nrows, self.ncols, 1))
+        state[board_2d=='U'] = -1
+        state[board_2d=='0'] = 0
 
-        num_tiles = ~np.logical_or(state == "U", state == "0")
-        scaled[num_tiles] = state[num_tiles].astype(int) / 8
+        num_tiles = ~np.logical_or(board_2d == "U", board_2d == "0")
+        state[num_tiles] = board_2d[num_tiles].astype(int) / 8
 
-        return scaled
+        return state
 
     def step(self, action_index):
 
@@ -111,6 +138,24 @@ class Minesweeper:
         return done
         #return new_state, reward, done
 
-x,y = tiles[0][0], tiles[0][1]
+    def remember(self, state, action, reward, new_state, done)
+        self.memory.store_transition(state, action, reward, new_state, done)
 
-pg.click(x,y)
+    def choose_move(self, state):
+        rand = np.random.random() # random value b/w 0 & 1
+
+        if rand < self.epsilon: # random move (explore)
+            move = np.random.randint(self.ntiles)
+        else:
+            moves = self.model.predict(state)
+            move = np.argmax(moves)
+
+        return move
+
+    def reset(self):
+        # restart game
+        try:
+            loc = pg.locateOnScreen(f'{IMGS}/oof.png')
+        except:
+            loc = pg.locateOnScreen(f'{IMGS}/reset.png')
+        pg.click(loc, duration=0.3)
