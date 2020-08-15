@@ -41,7 +41,7 @@ TILES = {
 class Minesweeper:
     def __init__(self):
         self.reset()
-        
+
         self.TILES = TILES
         self.loc = self.find_board()
         self.state = self.get_state(self.loc)
@@ -159,3 +159,46 @@ class Minesweeper:
 
     def update_replay_memory(self, transition):
         self.replay_memory.append(transition)
+
+    def train(self, done, episode):
+        if len(self.replay_memory) < MEM_SIZE_MIN:
+            return
+
+        batch = random.sample(self.replay_memory, BATCH_SIZE)
+
+        current_states = np.array([transition[0] for transition in batch])
+        current_qs_list = self.model.predict(current_states)
+
+        new_current_states = np.array([transition[3] for transition in batch])
+        future_qs_list = self.target_model.predict(new_current_states)
+
+        X = []
+        y = []
+
+        for i, (current_state, action, reward, new_current_state, done) in enumerate(batch):
+            if not done:
+                max_future_q = np.max(future_qs_list[i])
+                new_q = reward + DISCOUNT * max_future_q
+            else:
+                new_q = reward
+
+            current_qs = current_qs_list[i]
+            current_qs[action] = new_q
+
+            X.append(current_state)
+            y.append(current_qs)
+
+        self.model.fit(np.array(X), np.array(y), batch_size=BATCH_SIZE, shuffle=False)#,\
+                       #verbose=0, shuffle=False, callbacks=[self.tensorboard]\
+                       #if terminal_state else None)
+
+        # updating to determine if we want to update target_model yet
+        if done:
+            self.target_update_counter += 1
+
+        if self.target_update_counter > UPDATE_TARGET_EVERY:
+            self.target_model.set_weights(self.model.get_weights())
+            self.target_update_counter = 0
+
+        # decay epsilon
+        self.epsilon = max(EPSILON_MIN, self.epsilon*EPSILON_DECAY)
