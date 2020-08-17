@@ -33,9 +33,10 @@ TILES = {
     '5': f'{IMGS}/five.png',
     '6': f'{IMGS}/six.png',
     '7': f'{IMGS}/seven.png',
-    '8': f'{IMGS}/eight.png',
-    'M': f'{IMGS}/mine.png',
+    '8': f'{IMGS}/eight.png'
 }
+
+REWARDS = {'win':2, 'lose':-10, 'progress':1, 'guess':-1}
 # ====
 
 class Minesweeper:
@@ -47,8 +48,6 @@ class Minesweeper:
         self.TILES = TILES
         self.loc = self.find_board()
         self.state = self.get_state(self.loc)
-        self.nrows = sum(1 for i in self.state if i['coord'][0]==self.state[0]['coord'][0])
-        self.ncols = sum(1 for i in self.state if i['coord'][1]==self.state[0]['coord'][1])
         self.ntiles = self.nrows*self.ncols
         self.scaled = self.scale_state(self.state)
         self.n_solved_ = 0
@@ -56,10 +55,10 @@ class Minesweeper:
         # Deep Q-learning Parameters
         self.discount = DISCOUNT
         self.epsilon = epsilon
-        self.model = create_dqn(LEARN_RATE, self.scaled.shape, self.ntiles)
+        self.model = create_dqn(LEARN_RATE, self.state.shape, self.ntiles)
 
         # target model - this is what we predict against every step
-        self.target_model = self.create_dqn(LEARN_RATE, self.scaled.shape, self.ntiles)
+        self.target_model = create_dqn(LEARN_RATE, self.state.shape, self.ntiles)
         self.target_model.set_weights(self.model.get_weights())
 
         self.replay_memory = deque(maxlen=MEM_SIZE)
@@ -101,6 +100,15 @@ class Minesweeper:
 
         tiles = sorted(tiles, key=lambda x: (x['coord'][1], x['coord'][0]))
 
+        self.nrows = sum(1 for i in tiles if i['coord'][0]==tiles[0]['coord'][0])
+        self.ncols = sum(1 for i in tiles if i['coord'][1]==tiles[0]['coord'][1])
+
+        i=0
+        for x in range(self.nrows):
+            for y in range(self.ncols):
+                tiles[i]['index'] = (y, x)
+                i+=1
+
         return tiles
 
     def get_state(self, board):
@@ -120,40 +128,6 @@ class Minesweeper:
 
         return state
 
-    def step(self, action_index):
-
-        done = False
-
-        # number of solved tiles prior to move (initialized at 0)
-        self.n_solved = self.n_solved_
-
-        pg.click(self.board[action_index]['coord']) #, duration=0.1
-
-        if pg.locateOnScreen(f'{IMGS}/oof.png', region=self.loc) != None: # if lose
-            reward = -1
-            done = True
-            self.n_solved_ = 0
-
-        elif pg.locateOnScreen(f'{IMGS}/gg.png', region=self.loc) != None: # if win
-            reward = 1
-            done = True
-            self.n_solved_ = 0
-
-        else:
-            self.board = self.get_board(self.loc)
-            self.state = self.get_state(self.board)
-
-            # update number of solved tiles
-            self.n_solved_ = self.ntiles - np.sum(self.state == -1)
-
-            if self.n_solved_ > self.n_solved: # if progress
-                reward = 0.9
-
-            elif self.n_solved_ == self.n_solved: # if no progress
-                reward = -0.9
-
-        return self.state, reward, done
-
     def get_action(self, state):
         board = self.state.reshape(1, self.ntiles)
         unsolved = [i for i, x in enumerate(board[0]) if x==-1]
@@ -168,6 +142,59 @@ class Minesweeper:
             move = np.argmax(moves)
 
         return move
+
+    def get_neighbors(self, action_index):
+        board_2d = [t['value'] for t in self.board]
+        board_2d = np.reshape(board_2d, (self.nrows, self.ncols))
+
+        tile = self.board[action_index]['index']
+        x,y = tile[0], tile[1]
+
+        neighbors = []
+        for col in range(y-1, y+2):
+            for row in range(x-1, x+2):
+                if (-1 < x < self.nrows and
+                    -1 < y < self.ncols and
+                    (x != row or y != col) and
+                    (0 <= col < self.ncols) and
+                    (0 <= row < self.nrows)):
+                    neighbors.append(board_2d[col,row])
+
+        return neighbors
+
+    def step(self, action_index):
+        done = False
+
+        # number of solved tiles prior to move (initialized at 0)
+        self.n_solved = self.n_solved_
+
+        pg.click(self.board[action_index]['coord']) #, duration=0.1
+
+        if pg.locateOnScreen(f'{IMGS}/oof.png', region=self.loc) != None: # if lose
+            reward = self.rewards['lose']
+            done = True
+            self.n_solved_ = 0
+
+        elif pg.locateOnScreen(f'{IMGS}/gg.png', region=self.loc) != None: # if win
+            reward = self.rewards['win']
+            done = True
+            self.n_solved_ = 0
+
+        neighbors = self.get_neighbors(action_index)
+        elif all(t=='U' for t in neighbors): # if guess (all neighbors are unsolved)
+            reward = self.rewards['guess']
+
+        else: # if progress without guessing
+            self.board = self.get_board(self.loc)
+            self.state = self.get_state(self.board)
+
+            # update number of solved tiles
+            self.n_solved_ = self.ntiles - np.sum(self.state == -1)
+
+            #if self.n_solved_ > self.n_solved: # if progress
+            reward = self.rewards['progress']
+
+        return self.state, reward, done
 
     def update_replay_memory(self, transition):
         self.replay_memory.append(transition)
