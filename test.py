@@ -40,8 +40,10 @@ TILES = {
 
 class Minesweeper:
     def __init__(self):
+        pg.click((1,1))
         self.reset()
 
+        # Minesweeper Parameters
         self.TILES = TILES
         self.loc = self.find_board()
         self.state = self.get_state(self.loc)
@@ -51,21 +53,26 @@ class Minesweeper:
         self.scaled = self.scale_state(self.state)
         self.n_solved_ = 0
 
-        #self.memory = ReplayBuffer(MEM_SIZE, self.scaled.shape, self.ntiles)
-
+        # Deep Q-learning Parameters
+        self.discount = DISCOUNT
+        self.epsilon = epsilon
         self.model = create_dqn(LEARN_RATE, self.scaled.shape, self.ntiles)
 
         # target model - this is what we predict against every step
         self.target_model = self.create_dqn(LEARN_RATE, self.scaled.shape, self.ntiles)
         self.target_model.set_weights(self.model.get_weights())
 
+        self.replay_memory = deque(maxlen=MEM_SIZE)
+        self.target_update_counter = 0
+
     def reset(self):
+        pg.press('f2')
         # restart game
-        try:
+        '''try:
             loc = pg.locateOnScreen(f'{IMGS}/oof.png')
         except:
             loc = pg.locateOnScreen(f'{IMGS}/reset.png')
-        pg.click(loc, duration=0.3)
+        pg.click(loc, duration=0.3)'''
 
     def find_board(self):
         # obtain coordinates for Minesweeper board
@@ -127,6 +134,11 @@ class Minesweeper:
             done = True
             self.n_solved_ = 0
 
+        elif pg.locateOnScreen(f'{IMGS}/gg.png', region=self.loc) != None: # if win
+            reward = 1
+            done = True
+            self.n_solved_ = 0
+
         else:
             self.board = self.get_board(self.loc)
             self.state = self.get_state(self.board)
@@ -134,11 +146,7 @@ class Minesweeper:
             # update number of solved tiles
             self.n_solved_ = self.ntiles - np.sum(self.state == -1)
 
-            if pg.locateOnScreen(f'{IMGS}/gg.png', region=self.loc) != None: # if win
-                reward = 1
-                done = True
-
-            elif self.n_solved_ > self.n_solved: # if progress
+            if self.n_solved_ > self.n_solved: # if progress
                 reward = 0.9
 
             elif self.n_solved_ == self.n_solved: # if no progress
@@ -147,12 +155,16 @@ class Minesweeper:
         return self.state, reward, done
 
     def get_action(self, state):
+        board = self.state.reshape(1, self.ntiles)
+        unsolved = [i for i, x in enumerate(board[0]) if x==-1]
+
         rand = np.random.random() # random value b/w 0 & 1
 
         if rand < self.epsilon: # random move (explore)
-            move = np.random.randint(self.ntiles)
+            move = np.random.choice(unsolved)
         else:
-            moves = self.model.predict(np.array(self.state).reshape(-1, *self.state.shape))
+            moves = self.model.predict(np.reshape(self.state, (1, self.nrows, self.ncols, 1)))
+            moves[board!=-1] = 0
             move = np.argmax(moves)
 
         return move
