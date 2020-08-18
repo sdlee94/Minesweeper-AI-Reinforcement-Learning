@@ -1,6 +1,13 @@
-import os
-import pyautogui as pg
+import os, time, random
+import numpy as np
 from PIL import Image
+import matplotlib.pyplot as plt
+import pyautogui as pg
+
+from collections import deque
+
+from DQN import *
+from tensorboard import *
 
 # CONSTANTS ====
 
@@ -36,12 +43,12 @@ TILES = {
     '8': f'{IMGS}/eight.png'
 }
 
-REWARDS = {'win':2, 'lose':-10, 'progress':1, 'guess':-1}
+REWARDS = {'win':10, 'lose':-10, 'progress':2, 'guess':-1}
 # ====
 
 class Minesweeper:
     def __init__(self):
-        pg.click((1,1))
+        pg.click((10,100)) # click on current tab so 'F2' resets the game
         self.reset()
 
         # Minesweeper Parameters
@@ -53,6 +60,7 @@ class Minesweeper:
         self.n_solved_ = 0
 
         # Deep Q-learning Parameters
+        self.rewards = REWARDS
         self.discount = DISCOUNT
         self.epsilon = epsilon
         self.model = create_dqn(LEARN_RATE, self.state.shape, self.ntiles)
@@ -66,12 +74,6 @@ class Minesweeper:
 
     def reset(self):
         pg.press('f2')
-        # restart game
-        '''try:
-            loc = pg.locateOnScreen(f'{IMGS}/oof.png')
-        except:
-            loc = pg.locateOnScreen(f'{IMGS}/reset.png')
-        pg.click(loc, duration=0.3)'''
 
     def find_board(self):
         # obtain coordinates for Minesweeper board
@@ -138,7 +140,7 @@ class Minesweeper:
             move = np.random.choice(unsolved)
         else:
             moves = self.model.predict(np.reshape(self.state, (1, self.nrows, self.ncols, 1)))
-            moves[board!=-1] = 0
+            moves[board!=-1] = 0 # ensure already revealed tiles are not chosen
             move = np.argmax(moves)
 
         return move
@@ -168,6 +170,9 @@ class Minesweeper:
         # number of solved tiles prior to move (initialized at 0)
         self.n_solved = self.n_solved_
 
+        # get neighbors before clicking
+        neighbors = self.get_neighbors(action_index)
+
         pg.click(self.board[action_index]['coord']) #, duration=0.1
 
         if pg.locateOnScreen(f'{IMGS}/oof.png', region=self.loc) != None: # if lose
@@ -180,19 +185,15 @@ class Minesweeper:
             done = True
             self.n_solved_ = 0
 
-        neighbors = self.get_neighbors(action_index)
-        elif all(t=='U' for t in neighbors): # if guess (all neighbors are unsolved)
-            reward = self.rewards['guess']
-
-        else: # if progress without guessing
+        else: # if progress
             self.board = self.get_board(self.loc)
             self.state = self.get_state(self.board)
 
-            # update number of solved tiles
-            self.n_solved_ = self.ntiles - np.sum(self.state == -1)
+            if all(t=='U' for t in neighbors): # if guess (all neighbors are unsolved)
+                reward = self.rewards['guess']
 
-            #if self.n_solved_ > self.n_solved: # if progress
-            reward = self.rewards['progress']
+            else:
+                reward = self.rewards['progress']
 
         return self.state, reward, done
 
@@ -211,8 +212,7 @@ class Minesweeper:
         new_current_states = np.array([transition[3] for transition in batch])
         future_qs_list = self.target_model.predict(new_current_states)
 
-        X = []
-        y = []
+        X,y = [], []
 
         for i, (current_state, action, reward, new_current_state, done) in enumerate(batch):
             if not done:
@@ -227,8 +227,9 @@ class Minesweeper:
             X.append(current_state)
             y.append(current_qs)
 
-        self.model.fit(np.array(X), np.array(y), batch_size=BATCH_SIZE, shuffle=False)#,\
-                       #verbose=0, shuffle=False, callbacks=[self.tensorboard]\
+        self.model.fit(np.array(X), np.array(y), batch_size=BATCH_SIZE,
+                       shuffle=False, verbose=0)
+                       #, shuffle=False, callbacks=[self.tensorboard]\
                        #if terminal_state else None)
 
         # updating to determine if we want to update target_model yet
