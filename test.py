@@ -16,10 +16,12 @@ ROOT = os.getcwd()
 IMGS = f'{ROOT}/pics'
 
 # Training settings
-MEM_SIZE = 50_000
-MEM_SIZE_MIN = 1_000
+MEM_SIZE = 100_000
+MEM_SIZE_MIN = 500
 BATCH_SIZE = 64
 DISCOUNT = 0.99
+MODEL_NAME = '128x4'
+UPDATE_TARGET_EVERY = 5
 
 # Learning settings
 learn_rate = 0.01
@@ -63,7 +65,7 @@ TILES2 = {
     '8': 'eight',
 }
 
-REWARDS = {'win':10, 'lose':-10, 'progress':1, 'guess':-1}
+REWARDS = {'win':2, 'lose':-2, 'progress':1, 'guess':-1}
 # ====
 
 class Minesweeper:
@@ -77,15 +79,17 @@ class Minesweeper:
         self.ntiles = self.dims[2]
         self.board = self.get_board(self.loc)
         self.state = self.get_state(self.board)
+        self.n_wins = 0
 
         # Deep Q-learning Parameters
         self.rewards = REWARDS
         self.discount = DISCOUNT
+        self.learn_rate = learn_rate
         self.epsilon = epsilon
-        self.model = create_dqn(LEARN_RATE, self.state.shape, self.ntiles)
+        self.model = create_dqn(self.learn_rate, self.state.shape, self.ntiles)
 
         # target model - this is what we predict against every step
-        self.target_model = create_dqn(LEARN_RATE, self.state.shape, self.ntiles)
+        self.target_model = create_dqn(self.learn_rate, self.state.shape, self.ntiles)
         self.target_model.set_weights(self.model.get_weights())
 
         self.replay_memory = deque(maxlen=MEM_SIZE)
@@ -93,6 +97,7 @@ class Minesweeper:
 
     def reset(self):
         pg.press('f2')
+        self.n_progress = 0
 
     def get_loc(self):
         '''
@@ -116,10 +121,12 @@ class Minesweeper:
     def get_tiles(self, tile, bbox):
         '''
         Gets all locations of a given tile.
-        Different confidence values are needed to correctly detect different tiles with grayscale=True
+        Different confidence values are needed to correctly detect different
+        tiles with grayscale=True (slightly faster than grayscale=False)
         '''
         conf = CONFIDENCES[tile]
-        tiles = list(pg.locateAllOnScreen(f'{IMGS}/{tile}.png', region=bbox, grayscale=True, confidence=conf))
+        tiles = list(pg.locateAllOnScreen(f'{IMGS}/{tile}.png', region=bbox,
+                                          grayscale=True, confidence=conf))
 
         return tiles
 
@@ -147,9 +154,6 @@ class Minesweeper:
                 tiles.append({'coord': (coord[0], coord[1]), 'value': value})
 
         tiles = sorted(tiles, key=lambda x: (x['coord'][1], x['coord'][0]))
-
-        '''self.nrows = sum(1 for i in tiles if i['coord'][0]==tiles[0]['coord'][0])
-        self.ncols = sum(1 for i in tiles if i['coord'][1]==tiles[0]['coord'][1])'''
 
         i=0
         for x in range(self.nrows):
@@ -213,9 +217,6 @@ class Minesweeper:
     def step(self, action_index):
         done = False
 
-        # number of solved tiles prior to move (initialized at 0)
-        self.n_solved = self.n_solved_
-
         # get neighbors before clicking
         neighbors = self.get_neighbors(action_index)
 
@@ -224,12 +225,10 @@ class Minesweeper:
         if pg.locateOnScreen(f'{IMGS}/oof.png', region=self.loc) != None: # if lose
             reward = self.rewards['lose']
             done = True
-            self.n_solved_ = 0
 
         elif pg.locateOnScreen(f'{IMGS}/gg.png', region=self.loc) != None: # if win
             reward = self.rewards['win']
             done = True
-            self.n_solved_ = 0
 
         else: # if progress
             self.board = self.get_board(self.loc)
@@ -240,6 +239,7 @@ class Minesweeper:
 
             else:
                 reward = self.rewards['progress']
+                self.n_progress += 1 # track n of non-isoloated clicks
 
         return self.state, reward, done
 
@@ -274,9 +274,8 @@ class Minesweeper:
             y.append(current_qs)
 
         self.model.fit(np.array(X), np.array(y), batch_size=BATCH_SIZE,
-                       shuffle=False, verbose=0)
-                       #, shuffle=False, callbacks=[self.tensorboard]\
-                       #if terminal_state else None)
+                       shuffle=False, verbose=0, callbacks=[self.tensorboard]\
+                       if done else None)
 
         # updating to determine if we want to update target_model yet
         if done:
@@ -288,6 +287,6 @@ class Minesweeper:
 
         # decay learn_rate
         self.learn_rate = max(LEARN_MIN, self.learn_rate*LEARN_DECAY)
-        
+
         # decay epsilon
         self.epsilon = max(EPSILON_MIN, self.epsilon*EPSILON_DECAY)
