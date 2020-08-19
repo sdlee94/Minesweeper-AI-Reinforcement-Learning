@@ -109,12 +109,33 @@ class Minesweeper:
 
         return diff, loc, dims
 
+    def get_tiles(self, tile, bbox):
+        '''
+        Gets all locations of a given tile.
+        Different confidence values are needed to correctly detect different tiles with grayscale=True
+        '''
+        conf = CONFIDENCES[tile]
+        tiles = list(pg.locateAllOnScreen(f'{IMGS}/{tile}.png', region=bbox, grayscale=True, confidence=conf))
+
+        return tiles
+
     def get_board(self, bbox):
         '''
         Gets the state of the board as a dictionary of coordinates and values,
         ordered from left to right, top to bottom
         '''
-        all_tiles = [[t, list(pg.locateAllOnScreen(self.TILES[t], region=bbox))] for t in self.TILES]
+
+        all_tiles = [[t, self.get_tiles(TILES[t], self.loc)] for t in TILES]
+
+        # for speedup; look for higher tiles if n of lower tiles < total ----
+        count=0
+        for value, coords in all_tiles:
+            count += len(coords)
+
+        if count < self.ntiles:
+            higher_tiles = [[t, self.get_tiles(TILES2[t], self.loc)] for t in TILES2]
+            all_tiles += higher_tiles
+        # ----
 
         tiles = []
         for value, coords in all_tiles:
@@ -123,8 +144,8 @@ class Minesweeper:
 
         tiles = sorted(tiles, key=lambda x: (x['coord'][1], x['coord'][0]))
 
-        self.nrows = sum(1 for i in tiles if i['coord'][0]==tiles[0]['coord'][0])
-        self.ncols = sum(1 for i in tiles if i['coord'][1]==tiles[0]['coord'][1])
+        '''self.nrows = sum(1 for i in tiles if i['coord'][0]==tiles[0]['coord'][0])
+        self.ncols = sum(1 for i in tiles if i['coord'][1]==tiles[0]['coord'][1])'''
 
         i=0
         for x in range(self.nrows):
