@@ -24,26 +24,42 @@ DISCOUNT = 0.99
 
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
-EPSILON_DECAY = 0.99975
-MIN_EPSILON = 0.001
+EPSILON_DECAY = 0.9995
+EPSILON_MIN = 0.05
 
 # Environment settings
 EPISODES = 20_000
 
-TILES = {
-    'U': f'{IMGS}/unsolved.png',
-    '0': f'{IMGS}/zero.png',
-    '1': f'{IMGS}/one.png',
-    '2': f'{IMGS}/two.png',
-    '3': f'{IMGS}/three.png',
-    '4': f'{IMGS}/four.png',
-    '5': f'{IMGS}/five.png',
-    '6': f'{IMGS}/six.png',
-    '7': f'{IMGS}/seven.png',
-    '8': f'{IMGS}/eight.png'
+CONFIDENCES = {
+    'unsolved': 0.99,
+    'zero': 0.99,
+    'one': 0.95,
+    'two': 0.95,
+    'three': 0.88,
+    'four': 0.95,
+    'five': 0.95,
+    'six': 0.95,
+    'seven': 0.95,
+    'eight': 0.95
 }
 
-REWARDS = {'win':10, 'lose':-10, 'progress':2, 'guess':-1}
+TILES = {
+    'U': 'unsolved',
+    '0': 'zero',
+    '1': 'one',
+    '2': 'two',
+    '3': 'three',
+    '4': 'four'
+}
+
+TILES2 = {
+    '5': 'five',
+    '6': 'six',
+    '7': 'seven',
+    '8': 'eight',
+}
+
+REWARDS = {'win':10, 'lose':-10, 'progress':1, 'guess':-1}
 # ====
 
 class Minesweeper:
@@ -52,12 +68,11 @@ class Minesweeper:
         self.reset()
 
         # Minesweeper Parameters
-        self.TILES = TILES
-        self.loc = self.find_board()
-        self.state = self.get_state(self.loc)
-        self.ntiles = self.nrows*self.ncols
-        self.scaled = self.scale_state(self.state)
-        self.n_solved_ = 0
+        self.mode, self.loc, self.dims = self.get_loc()
+        self.nrows, self.ncols = self.dims[0], self.dims[1]
+        self.ntiles = self.dims[2]
+        self.board = self.get_board(self.loc)
+        self.state = self.get_state(self.board)
 
         # Deep Q-learning Parameters
         self.rewards = REWARDS
@@ -75,18 +90,24 @@ class Minesweeper:
     def reset(self):
         pg.press('f2')
 
-    def find_board(self):
-        # obtain coordinates for Minesweeper board
-        modes = ['beginner', 'intermediate', 'expert']
-        boards = [pg.locateOnScreen(f'{IMGS}/{mode}.png') for mode in modes]
+    def get_loc(self):
+        '''
+        obtain mode, screen coordinates and dimensions for Minesweeper board
+        '''
 
-        assert boards != [None, None, None], 'Minesweeper board not detected on screen'
+        modes = {'beginner':(9,9,81), 'intermediate':(16,16,256), 'expert':(16,30,480)}
+        boards = {mode: pg.locateOnScreen(f'{IMGS}/{mode}.png') for mode in modes.keys()}
 
-        for x in boards:
-            if x != None:
-                board = x
+        assert boards != {'beginner':None, 'intermediate':None, 'expert':None},\
+            'Minesweeper board not detected on screen'
 
-        return board
+        for mode in boards.keys():
+            if boards[mode] != None:
+                diff = mode
+                loc = boards[mode]
+                dims = modes[mode]
+
+        return diff, loc, dims
 
     def get_board(self, bbox):
         '''
