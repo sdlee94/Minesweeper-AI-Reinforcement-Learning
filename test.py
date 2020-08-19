@@ -18,9 +18,13 @@ IMGS = f'{ROOT}/pics'
 # Training settings
 MEM_SIZE = 50_000
 MEM_SIZE_MIN = 1_000
-LEARN_RATE = 0.001
 BATCH_SIZE = 64
 DISCOUNT = 0.99
+
+# Learning settings
+learn_rate = 0.01
+LEARN_DECAY = 0.9995
+LEARN_MIN = 0.0001
 
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
@@ -282,5 +286,8 @@ class Minesweeper:
             self.target_model.set_weights(self.model.get_weights())
             self.target_update_counter = 0
 
+        # decay learn_rate
+        self.learn_rate = max(LEARN_MIN, self.learn_rate*LEARN_DECAY)
+        
         # decay epsilon
         self.epsilon = max(EPSILON_MIN, self.epsilon*EPSILON_DECAY)
