@@ -2,9 +2,11 @@ class MinesweeperEnv(object):
     def __init__(self, width, height, n_mines):
         self.nrows, self.ncols = width, height
         self.n_mines = n_mines
+        self.grid = self.init_grid()
+        self.board = self.get_board()
 
-    def populate_board(self):
-        board = np.zeros((self.height, self.width), dtype='object')
+    def init_grid(self):
+        board = np.zeros((self.nrows, self.ncols), dtype='object')
         mines = self.n_mines
 
         while mines > 0:
@@ -15,12 +17,8 @@ class MinesweeperEnv(object):
 
         return board
 
-    def get_neighbors(self, coord):
-        board_2d = [t['value'] for t in self.board]
-        board_2d = np.reshape(board_2d, (self.nrows, self.ncols))
-
-        tile = self.board[action_index]['index']
-        x,y = tile[0], tile[1]
+    def count_bombs(self, coord):
+        x,y = coord[0], coord[1]
 
         neighbors = []
         for col in range(y-1, y+2):
@@ -30,6 +28,21 @@ class MinesweeperEnv(object):
                     (x != row or y != col) and
                     (0 <= col < self.ncols) and
                     (0 <= row < self.nrows)):
-                    neighbors.append(board_2d[col,row])
+                    neighbors.append(self.grid[row,col])
 
-        return neighbors
+        neighbors = np.array(neighbors)
+        return np.sum(neighbors=='B')
+
+    def get_board(self):
+        board = self.grid.copy()
+
+        coords = []
+        for x in range(self.nrows):
+            for y in range(self.ncols):
+                if self.grid[x,y] != 'B':
+                    coords.append((x,y))
+
+        for coord in coords:
+            board[coord] = self.count_bombs(coord)
+
+        return board
