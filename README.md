@@ -1,3 +1,3 @@
 # Minesweeper-AI-Reinforcement-Learning
 
-Minesweeper
+Minesweeper is awesome
