@@ -46,3 +46,17 @@ class MinesweeperEnv(object):
             board[coord] = self.count_bombs(coord)
 
         return board
+
+    def init_state(self):
+        unsolved_array = np.full((width, height), 'U', dtype='object')
+
+        state = []
+        for (x, y), value in np.ndenumerate(unsolved_array):
+            state.append({'coord': (x, y), 'value':value})
+
+        return state
+
+    def click(self, action_index):
+        coords = self.state[action_index]['coord']
+
+        self.state[action_index]['value'] = self.board[coords]
