@@ -1,9 +1,28 @@
 class MinesweeperEnv(object):
     def __init__(self, width, height, n_mines):
         self.nrows, self.ncols = width, height
+        self.ntiles = self.nrows * self.ncols
         self.n_mines = n_mines
         self.grid = self.init_grid()
         self.board = self.get_board()
+        self.state, self.state_im = self.init_state()
+        self.n_wins = 0
+
+        # Deep Q-learning Parameters
+        self.rewards = REWARDS
+        self.discount = DISCOUNT
+        self.learn_rate = learn_rate
+        self.epsilon = epsilon
+        self.model = create_dqn(self.learn_rate, self.state_im.shape, self.ntiles)
+
+        # target model - this is what we predict against every step
+        self.target_model = create_dqn(self.learn_rate, self.state_im.shape, self.ntiles)
+        self.target_model.set_weights(self.model.get_weights())
+
+        self.replay_memory = deque(maxlen=MEM_SIZE)
+        self.target_update_counter = 0
+
+        self.tensorboard = ModifiedTensorBoard(log_dir=f'logs/{MODEL_NAME}_lr{self.learn_rate}_decay{LEARN_DECAY}')
 
     def init_grid(self):
         board = np.zeros((self.nrows, self.ncols), dtype='object')
@@ -17,7 +36,7 @@ class MinesweeperEnv(object):
 
         return board
 
-    def count_bombs(self, coord):
+    def get_neighbors(self, coord):
         x,y = coord[0], coord[1]
 
         neighbors = []
@@ -30,7 +49,10 @@ class MinesweeperEnv(object):
                     (0 <= row < self.nrows)):
                     neighbors.append(self.grid[row,col])
 
-        neighbors = np.array(neighbors)
+        return np.array(neighbors)
+
+    def count_bombs(self, coord):
+        neighbors = self.get_neighbors(coord)
         return np.sum(neighbors=='B')
 
     def get_board(self):
@@ -47,6 +69,24 @@ class MinesweeperEnv(object):
 
         return board
 
+    def get_state_im(self, state):
+        '''
+        Gets the numeric image representation state of the board.
+        This is what will be the input for the DQN.
+        '''
+
+        state_2d = [t['value'] for t in state]
+        state_2d = np.reshape(state_2d, (self.nrows, self.ncols, 1))
+
+        state_im = np.zeros((self.nrows, self.ncols, 1))
+        state_im[state_2d=='U'] = -1
+        state_im[state_2d=='0'] = 0
+
+        num_tiles = ~np.logical_or(state_2d == "U", state_2d == "0")
+        state_im[num_tiles] = state_2d[num_tiles].astype(int) / 8
+
+        return state_im
+
     def init_state(self):
         unsolved_array = np.full((width, height), 'U', dtype='object')
 
@@ -54,9 +94,105 @@ class MinesweeperEnv(object):
         for (x, y), value in np.ndenumerate(unsolved_array):
             state.append({'coord': (x, y), 'value':value})
 
-        return state
+        state_im = self.get_state_im(state)
 
-    def click(self, action_index):
+        return state, state_im
+
+    def click(self, coords):
+        # make state equal to board at given coordinates
+        self.state[action_index]['value'] = self.board[coords]
+
+        # update state image
+        self.state_im = self.get_state_im(self.state)
+
+    def reset(self):
+        self.grid = self.init_grid()
+        self.board = self.get_board()
+        self.state, self.state_im = self.init_state()
+
+    def get_action(self, state):
+        board = state.reshape(1, self.ntiles)
+        unsolved = [i for i, x in enumerate(board[0]) if x==-1]
+
+        rand = np.random.random() # random value b/w 0 & 1
+
+        if rand < self.epsilon: # random move (explore)
+            move = np.random.choice(unsolved)
+        else:
+            moves = self.model.predict(np.reshape(state, (1, self.nrows, self.ncols, 1)))
+            moves[board!=-1] = 0
+            move = np.argmax(moves)
+
+    def step(self, action_index):
+        done = False
         coords = self.state[action_index]['coord']
 
-        self.state[action_index]['value'] = self.board[coords]
+        # get neighbors before action
+        neighbors = self.get_neighbors(coords)
+
+        self.click(coords)
+
+        if self.state[action_index]['value']=='B': # if lose
+            reward = self.rewards['lose']
+            done = True
+
+        elif -1 not in env.state_im: # if win
+            reward = self.rewards['win']
+            done = True
+            self.n_wins += 1
+
+        else: # if progress
+            if all(t=='U' for t in neighbors): # if guess (all neighbors are unsolved)
+                reward = self.rewards['guess']
+
+            else:
+                reward = self.rewards['progress']
+                self.n_progress += 1 # track n of non-isoloated clicks
+
+    def update_replay_memory(self, transition):
+        self.replay_memory.append(transition)
+
+    def train(self, done, episode):
+        if len(self.replay_memory) < MEM_SIZE_MIN:
+            return
+
+        batch = random.sample(self.replay_memory, BATCH_SIZE)
+
+        current_states = np.array([transition[0] for transition in batch])
+        current_qs_list = self.model.predict(current_states)
+
+        new_current_states = np.array([transition[3] for transition in batch])
+        future_qs_list = self.target_model.predict(new_current_states)
+
+        X,y = [], []
+
+        for i, (current_state, action, reward, new_current_state, done) in enumerate(batch):
+            if not done:
+                max_future_q = np.max(future_qs_list[i])
+                new_q = reward + DISCOUNT * max_future_q
+            else:
+                new_q = reward
+
+            current_qs = current_qs_list[i]
+            current_qs[action] = new_q
+
+            X.append(current_state)
+            y.append(current_qs)
+
+        self.model.fit(np.array(X), np.array(y), batch_size=BATCH_SIZE,
+                       shuffle=False, verbose=0, callbacks=[self.tensorboard]\
+                       if done else None)
+
+        # updating to determine if we want to update target_model yet
+        if done:
+            self.target_update_counter += 1
+
+        if self.target_update_counter > UPDATE_TARGET_EVERY:
+            self.target_model.set_weights(self.model.get_weights())
+            self.target_update_counter = 0
+
+        # decay learn_rate
+        self.learn_rate = max(LEARN_MIN, self.learn_rate*LEARN_DECAY)
+
+        # decay epsilon
+        self.epsilon = max(EPSILON_MIN, self.epsilon*EPSILON_DECAY)
