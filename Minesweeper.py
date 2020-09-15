@@ -175,6 +175,18 @@ class MinesweeperEnv(object):
         self.board = self.get_board()
         self.state, self.state_im = self.init_state()
 
+    def first_move(self):
+        # random first move, ensure it is not a bomb
+        move = np.random.randint(self.ntiles)
+        coord = self.state[move]['coord']
+
+        while self.board[coord] == 'B':
+            move = np.random.randint(self.ntiles)
+            coord = self.state[move]['coord']
+
+        self.click(move)
+        self.state_im = self.get_state_im(self.state)
+
     def get_action(self, state):
         board = state.reshape(1, self.ntiles)
         unsolved = [i for i, x in enumerate(board[0]) if x==-1]
