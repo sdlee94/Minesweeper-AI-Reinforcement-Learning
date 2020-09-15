@@ -143,9 +143,10 @@ class MinesweeperEnv(object):
 
         # reveal all neighbors if value is 0
         if value == 0:
-            self.reveal_neighbors(coord)
+            self.reveal_neighbors(coord, clicked_tiles=[])
 
-    def reveal_neighbors(self, coord, processed=[]):
+    def reveal_neighbors(self, coord, clicked_tiles):
+        processed = clicked_tiles
         state_df = pd.DataFrame(self.state)
         x,y = coord[0], coord[1]
 
@@ -167,7 +168,7 @@ class MinesweeperEnv(object):
 
                     # recursion in case neighbors are also 0
                     if self.board[row, col] == 0:
-                        self.reveal_neighbors((row, col), processed=processed)
+                        self.reveal_neighbors((row, col), clicked_tiles=processed)
 
     def reset(self):
         self.n_progress = 0
