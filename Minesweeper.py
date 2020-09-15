@@ -1,3 +1,40 @@
+import os, random
+import numpy as np
+from collections import deque
+from DQN import *
+from my_tensorboard import *
+
+import warnings
+warnings.filterwarnings('ignore')
+
+ROOT = '/content/drive/My Drive/Minesweeper_AI/' # on Google Colab
+ROOT = os.getcwd()
+
+MEM_SIZE = 100_000
+MEM_SIZE_MIN = 200
+BATCH_SIZE = 64
+DISCOUNT = 0.99 #gamma
+MODEL_NAME = '256x4'
+UPDATE_TARGET_EVERY = 5
+
+# Environment settings
+EPISODES = 10_000
+
+# Learning settings
+learn_rate = 0.0001
+LEARN_DECAY = 0.99975
+LEARN_MIN = 0.0001
+
+# Exploration settings
+epsilon = 0.9
+EPSILON_DECAY = 0.9995
+EPSILON_MIN = 0.05
+
+AGGREGATE_STATS_EVERY = 10
+MIN_REWARD = -9  # For model save
+
+REWARDS = {'win':2, 'lose':-2, 'progress':1, 'guess':-1}
+
 class MinesweeperEnv(object):
     def __init__(self, width, height, n_mines):
         self.nrows, self.ncols = width, height
@@ -6,6 +43,7 @@ class MinesweeperEnv(object):
         self.grid = self.init_grid()
         self.board = self.get_board()
         self.state, self.state_im = self.init_state()
+        self.n_progress = 0
         self.n_wins = 0
 
         # Deep Q-learning Parameters
@@ -22,7 +60,7 @@ class MinesweeperEnv(object):
         self.replay_memory = deque(maxlen=MEM_SIZE)
         self.target_update_counter = 0
 
-        self.tensorboard = ModifiedTensorBoard(log_dir=f'logs/{MODEL_NAME}_lr{self.learn_rate}_decay{LEARN_DECAY}')
+        self.tensorboard = ModifiedTensorBoard(log_dir=f'{ROOT}/logs/{MODEL_NAME}_lr{self.learn_rate}')
 
     def init_grid(self):
         board = np.zeros((self.nrows, self.ncols), dtype='object')
@@ -42,9 +80,7 @@ class MinesweeperEnv(object):
         neighbors = []
         for col in range(y-1, y+2):
             for row in range(x-1, x+2):
-                if (-1 < x < self.nrows and
-                    -1 < y < self.ncols and
-                    (x != row or y != col) and
+                if ((x != row or y != col) and
                     (0 <= col < self.ncols) and
                     (0 <= row < self.nrows)):
                     neighbors.append(self.grid[row,col])
@@ -88,7 +124,7 @@ class MinesweeperEnv(object):
         return state_im
 
     def init_state(self):
-        unsolved_array = np.full((width, height), 'U', dtype='object')
+        unsolved_array = np.full((self.nrows, self.ncols), 'U', dtype='object')
 
         state = []
         for (x, y), value in np.ndenumerate(unsolved_array):
@@ -98,14 +134,43 @@ class MinesweeperEnv(object):
 
         return state, state_im
 
-    def click(self, coords):
+    def click(self, action_index):
+        coords = self.state[action_index]['coord']
+        value = self.board[coord]
+
         # make state equal to board at given coordinates
         self.state[action_index]['value'] = self.board[coords]
 
-        # update state image
-        self.state_im = self.get_state_im(self.state)
+        # reveal all neighbors if value is 0
+        if value == 0:
+            self.reveal_neighbors(coord)
+
+    def reveal_neighbors(self, coord, processed=[]):
+        state_df = pd.DataFrame(self.state)
+        x,y = coord[0], coord[1]
+
+        neighbors = []
+        for col in range(y-1, y+2):
+            for row in range(x-1, x+2):
+                if ((x != row or y != col) and
+                    (0 <= col < self.ncols) and
+                    (0 <= row < self.nrows) and
+                    ((row, col) not in processed)):
+
+                    # prevent redundancy for adjacent zeros
+                    processed.append((row,col))
+
+                    index = state_df.index[state_df['coord'] == (row,col)].tolist()[0]
+                    #self.click(index)
+
+                    self.state[index]['value'] = self.board[row, col]
+
+                    # recursion in case neighbors are also 0
+                    if self.board[row, col] == 0:
+                        self.reveal_neighbors((row, col), processed=processed)
 
     def reset(self):
+        self.n_progress = 0
         self.grid = self.init_grid()
         self.board = self.get_board()
         self.state, self.state_im = self.init_state()
@@ -123,6 +188,8 @@ class MinesweeperEnv(object):
             moves[board!=-1] = 0
             move = np.argmax(moves)
 
+        return move
+
     def step(self, action_index):
         done = False
         coords = self.state[action_index]['coord']
@@ -130,24 +197,29 @@ class MinesweeperEnv(object):
         # get neighbors before action
         neighbors = self.get_neighbors(coords)
 
-        self.click(coords)
+        self.click(action_index)
 
         if self.state[action_index]['value']=='B': # if lose
             reward = self.rewards['lose']
             done = True
 
-        elif -1 not in env.state_im: # if win
+        elif -1 not in self.state_im: # if win
             reward = self.rewards['win']
             done = True
             self.n_wins += 1
 
         else: # if progress
+            # update state image
+            self.state_im = self.get_state_im(self.state)
+
             if all(t=='U' for t in neighbors): # if guess (all neighbors are unsolved)
                 reward = self.rewards['guess']
 
             else:
                 reward = self.rewards['progress']
                 self.n_progress += 1 # track n of non-isoloated clicks
+
+        return self.state_im, reward, done
 
     def update_replay_memory(self, transition):
         self.replay_memory.append(transition)
@@ -192,7 +264,7 @@ class MinesweeperEnv(object):
             self.target_update_counter = 0
 
         # decay learn_rate
-        self.learn_rate = max(LEARN_MIN, self.learn_rate*LEARN_DECAY)
+        #self.learn_rate = max(LEARN_MIN, self.learn_rate*LEARN_DECAY)
 
         # decay epsilon
         self.epsilon = max(EPSILON_MIN, self.epsilon*EPSILON_DECAY)
