@@ -170,15 +170,25 @@ class MinesweeperEnv(object):
         display(state_df.style.applymap(self.color_state))
 
     def click(self, action_index):
-        coords = self.state[action_index]['coord']
+        coord = self.state[action_index]['coord']
         value = self.board[coord]
 
+        # ensure first move is not a bomb
+        if (value == 'B') and (self.n_clicks == 0):
+            grid = self.grid.reshape(1, 81)
+            move = np.random.choice(np.nonzero(grid!='B')[1])
+            coord = self.state[move]['coord']
+            value = self.board[coord]
+            self.state[move]['value'] = value
+
         # make state equal to board at given coordinates
-        self.state[action_index]['value'] = self.board[coords]
+        self.state[action_index]['value'] = value
 
         # reveal all neighbors if value is 0
-        if value == 0:
+        if value == 0.0:
             self.reveal_neighbors(coord, clicked_tiles=[])
+
+        self.n_clicks += 1
 
     def reveal_neighbors(self, coord, clicked_tiles):
         processed = clicked_tiles
