@@ -137,6 +137,38 @@ class MinesweeperEnv(object):
 
         return state, state_im
 
+    def color_state(self, value):
+        if value == -1:
+            color = 'white'
+        elif value == 0:
+            color = 'slategrey'
+        elif value == 1:
+            color = 'blue'
+        elif value == 2:
+            color = 'green'
+        elif value == 3:
+            color = 'red'
+        elif value == 4:
+            color = 'midnightblue'
+        elif value == 5:
+            color = 'brown'
+        elif value == 6:
+            color = 'aquamarine'
+        elif value == 7:
+            color = 'black'
+        elif value == 8:
+            color = 'silver'
+        else:
+            color = 'magenta'
+
+        return f'color: {color}'
+
+    def draw_state(self):
+        state = self.state_im * 8.0
+        state_df = pd.DataFrame(state.reshape((self.nrows, self.ncols)), dtype=np.int8)
+
+        display(state_df.style.applymap(self.color_state))
+
     def click(self, action_index):
         coords = self.state[action_index]['coord']
         value = self.board[coord]
