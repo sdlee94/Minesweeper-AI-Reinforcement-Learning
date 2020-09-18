@@ -43,6 +43,7 @@ class MinesweeperEnv(object):
         self.grid = self.init_grid()
         self.board = self.get_board()
         self.state, self.state_im = self.init_state()
+        self.n_clicks = 0
         self.n_progress = 0
         self.n_wins = 0
 
@@ -51,16 +52,19 @@ class MinesweeperEnv(object):
         self.discount = DISCOUNT
         self.learn_rate = learn_rate
         self.epsilon = epsilon
-        self.model = create_dqn(self.learn_rate, self.state_im.shape, self.ntiles)
+        self.model = create_dqn(
+            self.learn_rate, self.state_im.shape, self.ntiles, CONV_UNITS, DENSE_UNITS)
 
         # target model - this is what we predict against every step
-        self.target_model = create_dqn(self.learn_rate, self.state_im.shape, self.ntiles)
+        self.target_model = create_dqn(
+            self.learn_rate, self.state_im.shape, self.ntiles, CONV_UNITS, DENSE_UNITS)
         self.target_model.set_weights(self.model.get_weights())
 
         self.replay_memory = deque(maxlen=MEM_SIZE)
         self.target_update_counter = 0
 
-        self.tensorboard = ModifiedTensorBoard(log_dir=f'{ROOT}/logs/{MODEL_NAME}_lr{self.learn_rate}')
+        self.tensorboard = ModifiedTensorBoard(
+            log_dir=f'logs/{MODEL_NAME}_lr{self.learn_rate}_decay{LEARN_DECAY}')
 
     def init_grid(self):
         board = np.zeros((self.nrows, self.ncols), dtype='object')
