@@ -115,15 +115,14 @@ class MinesweeperEnv(object):
         This is what will be the input for the DQN.
         '''
 
-        state_2d = [t['value'] for t in state]
-        state_2d = np.reshape(state_2d, (self.nrows, self.ncols, 1))
+        state_im = [t['value'] for t in state]
+        state_im = np.reshape(state_im, (self.nrows, self.ncols, 1)).astype(object)
 
-        state_im = np.zeros((self.nrows, self.ncols, 1))
-        state_im[state_2d=='U'] = -1
-        state_im[state_2d=='0'] = 0
+        state_im[state_im=='U'] = -1
+        state_im[state_im=='B'] = -2
 
-        num_tiles = ~np.logical_or(state_2d == "U", state_2d == "0")
-        state_im[num_tiles] = state_2d[num_tiles].astype(int) / 8
+        state_im = state_im.astype(np.int8) / 8
+        state_im = state_im.astype(np.float16)
 
         return state_im
 
