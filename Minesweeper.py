@@ -316,7 +316,7 @@ class MinesweeperEnv(object):
             self.target_update_counter = 0
 
         # decay learn_rate
-        #self.learn_rate = max(LEARN_MIN, self.learn_rate*LEARN_DECAY)
+        self.learn_rate = max(LEARN_MIN, self.learn_rate*LEARN_DECAY)
 
         # decay epsilon
         self.epsilon = max(EPSILON_MIN, self.epsilon*EPSILON_DECAY)
