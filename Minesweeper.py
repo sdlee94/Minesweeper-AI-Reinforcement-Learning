@@ -247,27 +247,31 @@ class MinesweeperEnv(object):
 
         self.click(action_index)
 
+        # update state image
+        self.state_im = self.get_state_im(self.state)
+
         if self.state[action_index]['value']=='B': # if lose
             reward = self.rewards['lose']
             done = True
+            progress = 'Lose'
 
-        elif -1 not in self.state_im: # if win
+        elif np.sum(new_state_im==-0.125) == self.n_mines: # if win
             reward = self.rewards['win']
             done = True
             self.n_wins += 1
+            progress = 'Win! :D'
 
         else: # if progress
-            # update state image
-            self.state_im = self.get_state_im(self.state)
-
-            if all(t=='U' for t in neighbors): # if guess (all neighbors are unsolved)
+            if all(t==-0.125 for t in neighbors): # if guess (all neighbors are unsolved)
                 reward = self.rewards['guess']
+                progress = 'guess'
 
             else:
                 reward = self.rewards['progress']
                 self.n_progress += 1 # track n of non-isoloated clicks
+                progress = 'yes'
 
-        return self.state_im, reward, done
+        return self.state_im, reward, done, progress
 
     def update_replay_memory(self, transition):
         self.replay_memory.append(transition)
