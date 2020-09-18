@@ -192,6 +192,7 @@ class MinesweeperEnv(object):
 
     def reveal_neighbors(self, coord, clicked_tiles):
         processed = clicked_tiles
+        #print(len(processed))
         state_df = pd.DataFrame(self.state)
         x,y = coord[0], coord[1]
 
@@ -212,26 +213,15 @@ class MinesweeperEnv(object):
                     self.state[index]['value'] = self.board[row, col]
 
                     # recursion in case neighbors are also 0
-                    if self.board[row, col] == 0:
+                    if self.board[row, col] == 0.0:
                         self.reveal_neighbors((row, col), clicked_tiles=processed)
 
     def reset(self):
+        self.n_clicks = 0
         self.n_progress = 0
         self.grid = self.init_grid()
         self.board = self.get_board()
         self.state, self.state_im = self.init_state()
-
-    def first_move(self):
-        # random first move, ensure it is not a bomb
-        move = np.random.randint(self.ntiles)
-        coord = self.state[move]['coord']
-
-        while self.board[coord] == 'B':
-            move = np.random.randint(self.ntiles)
-            coord = self.state[move]['coord']
-
-        self.click(move)
-        self.state_im = self.get_state_im(self.state)
 
     def get_action(self, state):
         board = state.reshape(1, self.ntiles)
