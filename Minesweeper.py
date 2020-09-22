@@ -180,9 +180,9 @@ class MinesweeperEnv(object):
             coord = self.state[move]['coord']
             value = self.board[coord]
             self.state[move]['value'] = value
-
-        # make state equal to board at given coordinates
-        self.state[action_index]['value'] = value
+        else:
+            # make state equal to board at given coordinates
+            self.state[action_index]['value'] = value
 
         # reveal all neighbors if value is 0
         if value == 0.0:
@@ -258,6 +258,7 @@ class MinesweeperEnv(object):
         elif np.sum(new_state_im==-0.125) == self.n_mines: # if win
             reward = self.rewards['win']
             done = True
+            self.n_progress += 1
             self.n_wins += 1
             progress = 'Win! :D'
 
