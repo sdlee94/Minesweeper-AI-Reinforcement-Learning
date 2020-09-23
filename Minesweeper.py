@@ -1,41 +1,40 @@
-import os, random
+import random
 import numpy as np
 from collections import deque
 from DQN import *
-from my_tensorboard import *
+# use my_tensorboard2.py if using tensorflow v2+, use my_tensorboard.py otherwise
+from my_tensorboard2 import *
 
 import warnings
 warnings.filterwarnings('ignore')
 
-ROOT = '/content/drive/My Drive/Minesweeper_AI/' # on Google Colab
-ROOT = os.getcwd()
-
-MEM_SIZE = 100_000
-MEM_SIZE_MIN = 200
-BATCH_SIZE = 64
-DISCOUNT = 0.99 #gamma
-MODEL_NAME = '256x4'
-UPDATE_TARGET_EVERY = 5
-
 # Environment settings
-EPISODES = 10_000
+MEM_SIZE = 50_000 # number of moves to store in replay buffer
+MEM_SIZE_MIN = 1_000 # min number of moves in replay buffer
 
 # Learning settings
-learn_rate = 0.0001
+BATCH_SIZE = 64
+learn_rate = 0.01
 LEARN_DECAY = 0.99975
-LEARN_MIN = 0.0001
+LEARN_MIN = 0.001
+DISCOUNT = 0.01 #gamma
+
+# based on https://github.com/jakejhansen/minesweeper_solver
+REWARDS = {'win':1, 'lose':-1, 'progress':0.3, 'guess':-0.3}
 
 # Exploration settings
-epsilon = 0.9
-EPSILON_DECAY = 0.9995
-EPSILON_MIN = 0.05
+epsilon = 0.95
+EPSILON_DECAY = 0.99975
+EPSILON_MIN = 0.01
 
-AGGREGATE_STATS_EVERY = 10
-MIN_REWARD = -9  # For model save
+# DQN settings
+CONV_UNITS = 64 # number of neurons in each conv layer
+DENSE_UNITS = 256 # number of neurons in fully connected dense layer
+UPDATE_TARGET_EVERY = 5
 
-REWARDS = {'win':2, 'lose':-2, 'progress':1, 'guess':-1}
+MODEL_NAME = f'conv{CONV_UNITS}x4_dense{DENSE_UNITS}x2_y{DISCOUNT}_minlr{LEARN_MIN}'
 
-class MinesweeperEnv(object):
+class MinesweeperAgent(object):
     def __init__(self, width, height, n_mines):
         self.nrows, self.ncols = width, height
         self.ntiles = self.nrows * self.ncols
@@ -64,7 +63,7 @@ class MinesweeperEnv(object):
         self.target_update_counter = 0
 
         self.tensorboard = ModifiedTensorBoard(
-            log_dir=f'logs/{MODEL_NAME}_lr{self.learn_rate}_decay{LEARN_DECAY}')
+            log_dir=f'logs\\{MODEL_NAME}', profile_batch=0)
 
     def init_grid(self):
         board = np.zeros((self.nrows, self.ncols), dtype='object')
@@ -175,7 +174,7 @@ class MinesweeperEnv(object):
 
         # ensure first move is not a bomb
         if (value == 'B') and (self.n_clicks == 0):
-            grid = self.grid.reshape(1, 81)
+            grid = self.grid.reshape(1, self.ntiles)
             move = np.random.choice(np.nonzero(grid!='B')[1])
             coord = self.state[move]['coord']
             value = self.board[coord]
@@ -192,7 +191,6 @@ class MinesweeperEnv(object):
 
     def reveal_neighbors(self, coord, clicked_tiles):
         processed = clicked_tiles
-        #print(len(processed))
         state_df = pd.DataFrame(self.state)
         x,y = coord[0], coord[1]
 
@@ -208,7 +206,6 @@ class MinesweeperEnv(object):
                     processed.append((row,col))
 
                     index = state_df.index[state_df['coord'] == (row,col)].tolist()[0]
-                    #self.click(index)
 
                     self.state[index]['value'] = self.board[row, col]
 
@@ -233,7 +230,7 @@ class MinesweeperEnv(object):
             move = np.random.choice(unsolved)
         else:
             moves = self.model.predict(np.reshape(state, (1, self.nrows, self.ncols, 1)))
-            moves[board!=-1] = 0
+            moves[board!=-0.125] = np.min(moves) # set already clicked tiles to min value
             move = np.argmax(moves)
 
         return move
