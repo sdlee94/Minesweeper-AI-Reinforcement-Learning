@@ -38,7 +38,7 @@ First, let's define Q-learning. In Q-learning, actions are chosen based on the m
 
 So how are Q-values updated? The core algorithm of a Q-learning problem is the **Bellman Equation**:
 
-<div style='text-align:center'><img src='bellman.png' width='1000' height='200'/></div>
+<div style='text-align:center'><img src='bellman.png' width='500'/></div>
 
 an agent selects an action at time *t* ( *α*<sub>*t*</sub> ), gets a reward ( *r*<sub>*t*</sub> ) and the state is updated ( *s*<sub>*t*</sub> --> *s*<sub>*t+1*</sub> ).
 
