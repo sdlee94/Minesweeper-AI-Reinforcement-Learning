@@ -34,7 +34,13 @@ So the goal of RL is for the **Agent** to learn an optimal **policy** by pursuin
 
 ### What is a Deep Q-learning Network?
 
-First, let's define Q-learning. In Q-learning, at time *t* an agent selects an action (*α*<sub>*t*</sub>), gets a reward (*r*<sub>*t*</sub>) and the state is updated (*s*<sub>*t*</sub> --> *s*<sub>*t+1*</sub>)
+First, let's define Q-learning. In Q-learning, actions are chosen based on the maximum quality-value (***Q***) for all possible actions in a given state ( ***s*** ). Q-values start at 0 (typically) and are updated as the agent plays the game and observes rewards for its initially random policy. Note that Q-values have no concrete meaning outside of the context of a specific Q-learning problem - they simply serve as a relative metric for action selection.
+
+So how are Q-values updated? The core algorithm of a Q-learning problem is the **Bellman Equation**:
+
+<div style="text-align:center"><img src="bellman.png" /></div>
+
+an agent selects an action at time *t* ( *α*<sub>*t*</sub> ), gets a reward ( *r*<sub>*t*</sub> ) and the state is updated ( *s*<sub>*t*</sub> --> *s*<sub>*t+1*</sub> ).
 
 
 
