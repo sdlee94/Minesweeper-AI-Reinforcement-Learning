@@ -34,7 +34,7 @@ So the goal of RL is for the **Agent** to learn an optimal **policy** by pursuin
 
 ### What is a Deep Q-learning Network?
 
-First, let's define Q-learning. In Q-learning, an agent selects an action ($\alpha$)
+First, let's define Q-learning. In Q-learning, an agent selects an action (\alpha)
 
 
 
