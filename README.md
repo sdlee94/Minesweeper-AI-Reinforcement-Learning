@@ -1,8 +1,10 @@
 ## I trained an A.I. to beat Minesweeper.. without teaching it any rules!
 
-Of course, since this is a Reinforcement Learning project, the above statement should be a given. After all, Reinforcement Learning is all about having a machine learning model improve through trial-and-error. Below is a comparison of a model playing Minesweeper before training and after training on ___ games!
+Of course, since this is a Reinforcement Learning project, the above statement should be a given. After all, Reinforcement Learning is all about having a machine learning model improve through trial-and-error. Below is a comparison of a model playing Minesweeper before training and after training on ~half a million games!
 
-*Insert GIF*
+<p align="center">
+  <img src="https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/before_after_train.gif"/>
+</p>  
 
 ## Table of Contents
 1. [Introduction to Minesweeper](#intro)
@@ -21,28 +23,30 @@ Given the logical rules of the game, Minesweeper can actually be solved using br
 
 This is where Reinforcement Learning comes in!
 
-### What is Reinforcement Learning?
+### What is Reinforcement Learning? <a name='RL'></a>
 
 Reinforcement Learning (RL) is an area of machine learning that aims to train a computer to accomplish a task. The following are the key components of RL:
 
 
 - **The Reward Structure**: Rather than explicit rules, we indicate to the computer what is beneficial or detrimental to performing a task by assigning rewards and/or penalties on specific conditions.
-- **The Agent**: This is essentially the computer, which takes actions on the **environment** based on what it thinks will result in the highest reward / lowest penalty.
+- **The Agent**: This is essentially the computer, which takes actions on the **environment** based on what it thinks will result the highest reward / lowest penalty.
 - **The Environment**: This is the game. Its state is updated every time the **agent** takes an action. Each action is assigned a reward based on our **reward structure**. The environment's current state, action, reward and new state are collectively called a **transition**. The current state and reward are fed back to the agent so that it can learn from these experiences. By accumulating experience, the agent develops a better **policy** (*i.e.* behaviour) in performing the task at hand.
 
 So the goal of RL is for the **Agent** to learn an optimal **policy** by pursuing actions that return the greatest reward. There are several different types of RL algorithms. In this project, I used a **Deep Q-learning Network** (DQN).
 
 ### What is a Deep Q-learning Network?
 
-First, let's define Q-learning. In Q-learning, actions are chosen based on the maximum quality-value (***Q***) for all possible actions in a given state ( ***s*** ). Q-values start at 0 (typically) and are updated as the agent plays the game and observes rewards for its initially random policy. Note that Q-values have no concrete meaning outside of the context of a specific Q-learning problem - they simply serve as a relative metric for action selection.
+First, let's define Q-learning. In Q-learning, actions are chosen based on the maximum quality-value ( **Q** ) for all possible actions in a given state ( **s** ). Q-values start at 0 (typically) and are updated as the agent plays the game and observes rewards for its initially random policy. Note that Q-values have no inherent meaning outside of the context of a specific Q-learning problem - they simply serve to compare the value of actions relative to each other.
 
 So how are Q-values updated? The core algorithm of a Q-learning problem is the **Bellman Equation**:
+
 
 <p align='center'>
   <img src='bellman.png' width='500'/>
 </p>
 
-an agent selects an action at time *t* ( *α*<sub>*t*</sub> ), gets a reward ( *r*<sub>*t*</sub> ) and the state is updated ( *s*<sub>*t*</sub> --> *s*<sub>*t+1*</sub> ).
+
+At a given time **t**, the agent selects an action ( **α<sub>t</sub>** ), gets a reward ( **r<sub>t</sub>** ) and the state is updated ( **s<sub>t</sub>** --> **s<sub>t+1</sub>** ).
 
 
 
