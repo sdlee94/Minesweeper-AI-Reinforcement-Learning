@@ -15,8 +15,6 @@ Of course, since this is a Reinforcement Learning project, the above statement s
 
 Minesweeper is a classic game of logic, dating back to 1989. The objective - click on all tiles except the ones containing mines. By clicking on tiles you reveal numbers which indicate how many mines are in the tiles around them. You progress through the game by revealing numbers and deducing where it is safe to click next.
 
-*Insert GIF*
-
 **Can a computer learn to beat Minesweeper?**
 
 Given the logical rules of the game, Minesweeper can actually be solved using brute force algorithms such as a combination of if-else statements. This means that a computer solver can be obtained by explicitly programming it to take specific actions from specific states. But can a computer *learn* to play Minesweeper without these clear-cut commands? In other words, can a computer learn the logic of Minesweeper without it being aware of the rules firsthand?
@@ -36,9 +34,9 @@ So the goal of RL is for the **Agent** to learn an optimal **policy** by pursuin
 
 ### What is a Deep Q-learning Network?
 
-First, let's define Q-learning. In Q-learning, actions are chosen based on the maximum quality-value ( **Q** ) for all possible actions in a given state ( **s** ). Q-values start at 0 (typically) and are updated as the agent plays the game and observes rewards for its initially random policy. Note that Q-values have no inherent meaning outside of the context of a specific Q-learning problem - they simply serve to compare the value of actions relative to each other.
+First, let's define Q-learning. Q-learning involves having a reference table of Q-values with all possible states as rows and all possible actions as columns. Actions are chosen based on the maximum quality-value ( **Q** ) for all possible actions in a given state ( **s** ). Q-values are initialized randomly (typically at 0) and are updated as the agent plays the game and observes rewards for its actions. Note that Q-values have no inherent meaning outside of the context of a specific Q-learning problem - they simply serve to compare the value of actions relative to each other.
 
-So how are Q-values updated? The core algorithm of a Q-learning problem is the **Bellman Equation**:
+So how are Q-values updated? The core algorithm of Q-learning is the Q-function, which is derived from the **Bellman Equation**:
 
 
 <p align='center'>
@@ -46,8 +44,27 @@ So how are Q-values updated? The core algorithm of a Q-learning problem is the *
 </p>
 
 
+Put simply, the updated Q-value is the immediate reward (r) plus the highest possible Q-value of the next state, multiplied by a **Discount Factor** ( **γ** ). The **Discount Factor** ranges from 0 to 1 and indicates how much weight is given to future rewards: a value closer to 1 places more weight to future rewards while a value closer to 0 places less weight (more discount). In other words, **Discount Factor** is a hyperparameter that controls how much your agent pursues immediate rewards vs. future rewards. For example, say a game gives you the option to fight Bowser that will likely give you damage and thus, accrue negative reward. However, beating Bowser awards you with 10,829 coins that translates to a very high reward. With **γ** set close to 0, your agent may learn to avoid fighting Bowser altogether, as the reward for beating him is heavily discounted and thus not worth the damage it would take to fight him. With **γ** close to 1, however, your agent may opt to fight Bowser since it values the reward for beating him very highly despite the damage (negative reward) required to do so.
+
+> Sidenote: In Minesweeper, the discount factor does not matter so much
+
+But wait! If an agent is always choosing the action that returns the highest reward, it would never choose to fight Bowser in the first place, right? Right! Since the agent begins without the experience of beating Bowser, it does not know about the juicy 10,829 coins. Here comes in the second hyperparameter: epsilon ( **ε** )
+
+Let's watch Q-learning at work with the example below. We start with a Q-table with all Q-values initialized at 0. We can see that
+
 At a given time **t**, the agent selects an action ( **α<sub>t</sub>** ), gets a reward ( **r<sub>t</sub>** ) and the state is updated ( **s<sub>t</sub>** --> **s<sub>t+1</sub>** ).
 
+You could think of the boxed portion of the equation as the target variable.
+
+```python
+# model is your neural Network,
+# done is a boolean that is True if the game is at a terminal state
+discount = 0.9
+if not done:
+  new_q = reward + discount * np.max(model.predict(state))
+else:
+  new_q = reward
+```
 
 
 ## Neural Network Architechture
