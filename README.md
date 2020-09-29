@@ -36,7 +36,9 @@ So the goal of RL is for the **Agent** to learn an optimal **policy** by pursuin
 
 First, let's define Q-learning. Q-learning involves having a reference table of Q-values with all possible states as rows and all possible actions as columns. Actions are chosen based on the maximum quality-value ( **Q** ) for all possible actions in a given state ( **s** ). Q-values are initialized randomly (typically at 0) and are updated as the agent plays the game and observes rewards for its actions. Note that Q-values have no inherent meaning outside of the context of a specific Q-learning problem - they simply serve to compare the value of actions relative to each other.
 
-So how are Q-values updated? The core algorithm of Q-learning is the Q-function, which is derived from the **Bellman Equation**:
+However, Q-learning becomes unfeasible if the number of states and actions are large - the Q-table would quickly hit a memory limit! Bypassing this limitation is a combination of Deep Learning and Q-learning (aptly named Deep Q-learning) which uses a neural network to approximate the Q-function.
+
+Speaking of which, the Q-function is the core algorithm of Q-learning, and is derived from the **Bellman Equation**:
 
 
 <p align='center'>
@@ -44,11 +46,24 @@ So how are Q-values updated? The core algorithm of Q-learning is the Q-function,
 </p>
 
 
-Put simply, the updated Q-value is the immediate reward (r) plus the highest possible Q-value of the next state, multiplied by a **Discount Factor** ( **γ** ). The **Discount Factor** ranges from 0 to 1 and indicates how much weight is given to future rewards: a value closer to 1 places more weight to future rewards while a value closer to 0 places less weight (more discount). In other words, **Discount Factor** is a hyperparameter that controls how much your agent pursues immediate rewards vs. future rewards. For example, say a game gives you the option to fight Bowser that will likely give you damage and thus, accrue negative reward. However, beating Bowser awards you with 10,829 coins that translates to a very high reward. With **γ** set close to 0, your agent may learn to avoid fighting Bowser altogether, as the reward for beating him is heavily discounted and thus not worth the damage it would take to fight him. With **γ** close to 1, however, your agent may opt to fight Bowser since it values the reward for beating him very highly despite the damage (negative reward) required to do so.
+Put simply, the updated Q-value is the immediate reward (r) plus the highest possible Q-value of the next state, multiplied by a **Discount Factor** ( **γ** ). The **Discount Factor** ranges from 0 to 1 and indicates how much weight is given to future rewards: a value closer to 1 places more weight to future rewards while a value closer to 0 places less weight (more discount). In other words, **Discount Factor** is a hyperparameter that controls how much your agent pursues immediate rewards vs. future rewards. Say a game has the option to fight Wario with a prize of 10,829 coins (a very high reward) for beating him. However, fighting Wario requires you to take damage (which gives negative reward). With **γ** set close to 0, your agent may learn to avoid fighting Wario altogether, as the reward for beating him is heavily discounted and thus not worth the damage it would take to fight him. With **γ** close to 1, your agent may opt to fight Wario since it values the reward for beating him very highly despite the damage required to do so.
 
-> Sidenote: In Minesweeper, the discount factor does not matter so much
+> Sidenote: In Minesweeper, the discount factor is not so important since every action that does not reveal a mine, be it sooner or later, has equal value in progressing towards the end goal: solving the board. In fact, [Hansen and others (2017)](https://github.com/jakejhansen/minesweeper_solver/blob/master/article.pdf) showed that γ=0 resulted in higher win-rates than with γ=0.99 for their Q-learning Minesweeper implementation.
 
-But wait! If an agent is always choosing the action that returns the highest reward, it would never choose to fight Bowser in the first place, right? Right! Since the agent begins without the experience of beating Bowser, it does not know about the juicy 10,829 coins. Here comes in the second hyperparameter: epsilon ( **ε** )
+But wait! If an agent starts with no experience, and is always choosing the action that returns the highest reward, it would never learn to beat Wario in the first place, right? Right! Since the agent begins without the experience of beating Wario, it does not know about the juicy 10,829 coins and will thus learn to avoid the negative reward taken from fighting him. For an agent to find new valuable policies, it needs to explore new actions. This is where the second hyperparameter: epsilon ( **ε** ) comes in.
+
+**ε** is the probability of exploring (acting randomly) vs. exploiting (acting based on maximum Q). If **ε** is 0.9, your agent will act randomly 90% of the time and exploit prior knowledge (use maximum Q) 10% of the time. Typically, **ε** is set to be high (>=0.9) at the start and decayed to a lower value as training progresses. This allows your agent to sufficiently explore and generate experience before gradually transitioning to a policy based on exploitation.
+
+```python
+epsilon = 0.9
+rand = np.random.random() # random value b/w 0 & 1
+
+if rand < epsilon:
+    move = np.random.choice(actions)
+else:
+    moves = model.predict(state) # model is your neural Network
+    move = np.argmax(moves)
+```
 
 Let's watch Q-learning at work with the example below. We start with a Q-table with all Q-values initialized at 0. We can see that
 
