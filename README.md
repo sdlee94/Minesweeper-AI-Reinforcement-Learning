@@ -9,7 +9,8 @@ Of course, since this is a Reinforcement Learning project, the above statement s
 ## Table of Contents
 1. [Introduction to Minesweeper](#intro)
 2. [Reinforcement Learning](#RL)
-3. [Deep Q Learning](#DQN)
+3. [Deep Q-Learning Networks](#DQN)
+4. [Using Reinforcement Learning to Beat Minesweeper](#MS)
 
 ### Introduction: The Game of Minesweeper <a name='intro'></a>
 
@@ -32,7 +33,7 @@ Reinforcement Learning (RL) is an area of machine learning that aims to train a 
 
 So the goal of RL is for the **Agent** to learn an optimal **policy** by pursuing actions that return the greatest reward. There are several different types of RL algorithms. In this project, I used a **Deep Q-learning Network** (DQN).
 
-### What is a Deep Q-learning Network?
+### What is a Deep Q-learning Network? <a name='DQN'></a>
 
 First, let's define Q-learning. Q-learning involves having a reference table of Q-values (a Q-table) with all possible states as rows and all possible actions as columns. Actions are chosen based on the maximum quality-value ( **Q** ) for all possible actions in a given state ( **s** ). Q-values are initialized randomly (typically at 0) and are updated as the agent plays the game and observes rewards for its actions. Note that Q-values have no inherent meaning outside of the context of a specific Q-learning problem - they simply serve to compare the value of actions relative to each other.
 
@@ -119,5 +120,6 @@ if target_update_counter > UPDATE_TARGET_EVERY:
     target_update_counter = 0
 ```
 
+Hope the above helps you understand the concepts around reinforcement learning and DQNs and perhaps even helps you implement your own Reinforcement Learning project! Now I'll go into my Minesweeper agent.
 
-## Neural Network Architechture
+## Using Reinforcement Learning to Beat Minesweeper <a name='MS'></a>
