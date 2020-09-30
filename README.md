@@ -47,15 +47,16 @@ I mentioned the Q-function. Well this is the core algorithm of Q-learning, and i
 </p>
 
 
-Put simply, the updated Q-value is the immediate reward (r) plus the highest possible Q-value of the next state, multiplied by a **Discount Factor ( γ )** (More on this in a bit). You can also think of this as the target variable and notice that this is basically a regression problem.
+Put simply, the updated Q-value is the immediate reward (r) plus the highest possible Q-value of the next state, multiplied by a **Discount Factor ( γ )** (More on this in a bit). As you maybe realized, this is basically a regression problem with the above being the target variable!
 
-The **Discount Factor** ranges from 0 to 1 and indicates how much weight is given to future rewards: a value closer to 1 places more weight to future rewards while a value closer to 0 places less weight (more discount). In other words, **Discount Factor** is a hyperparameter that controls how much your agent pursues immediate rewards vs. future rewards. Say a game has the option to fight Wario with a prize of 10,829 coins (a very high reward) for beating him. However, fighting Wario requires you to take damage (which gives negative reward). With **γ** set close to 0, your agent may learn to avoid fighting Wario altogether, as the reward for beating him is heavily discounted and thus not worth the damage it would take to fight him. With **γ** close to 1, your agent may opt to fight Wario since it values the reward for beating him very highly despite the damage required to do so.
+The **Discount Factor** is a hyperparameter that ranges from 0 to 1 and indicates how much weight is given to future rewards: a value closer to 1 places more weight to future rewards while a value closer to 0 places less weight (more discount). Say a game has the option to fight Wario with a prize of 10,829 coins (a very high reward) for beating him. However, fighting Wario requires you to take damage (which gives negative reward). With **γ** set close to 0, your agent may learn to avoid fighting Wario altogether, as the reward for beating him is heavily discounted and thus not worth the damage it would take to fight him. With **γ** close to 1, your agent may opt to fight Wario since it values the reward for beating him very highly despite the damage required to do so.
 
 > Sidenote: In Minesweeper, the discount factor is not so important since every action that does not reveal a mine, be it sooner or later, has equal value in progressing towards the end goal: solving the board. In fact, [Hansen and others (2017)](https://github.com/jakejhansen/minesweeper_solver/blob/master/article.pdf) showed that γ=0 resulted in higher win-rates than with γ=0.99 for their Q-learning Minesweeper implementation.
 
 But wait! If an agent starts with no experience, and is always choosing the action that returns the highest reward, it would never learn to beat Wario in the first place, right? Right! Since the agent begins without the experience of beating Wario, it does not know about the juicy 10,829 coins and will thus learn to avoid the negative reward taken from fighting him (This behaviour can be described as acting greedily). For an agent to find new valuable policies, it needs to explore new actions. This is where the hyperparameter, epsilon ( **ε** ) comes in.
 
 **ε** is the probability of exploring (acting randomly) vs. exploiting (acting based on maximum Q). If **ε** is 0.9, your agent will act randomly 90% of the time and exploit prior knowledge (use maximum Q) 10% of the time. Typically, **ε** is set to be high (>=0.9) at the start and decayed to a lower value as training progresses. This allows your agent to sufficiently explore and generate experience before gradually transitioning to a policy based on exploitation. The following is python code implementing **Epsilon-Greedy**: choosing an action based on current Q-value estimates with probability 1-epsilon, and random otherwise.
+
 
 ```python
 epsilon = 0.9
@@ -69,11 +70,13 @@ else:
     move = np.argmax(moves)
 ```
 
+
 Two other concepts that were key to recent improvements in deep reinforcement learning are **Experience Replay** and **Double Deep Q-Learning Networks**:
 
 **Experience Replay:** As opposed to feeding in consecutive state-action pairs as they occur to our neural network, we instead store the agent's experiences and randomly sample from this stored experience to train our network. If the network trains only on consecutive batches of experience, it may overfit due to these samples being highly correlated. Random sampling of past experience breaks these correlations and therefore enables more efficient learning. The stored experience is also referred to as the replay buffer, the minimum and maximum size of which may require tuning. More important is the maximum replay buffer size: too small and your buffer might be too concentrated with recent experience leading to overfitting. Too big and your buffer might be too diluted with past experience which may slow down the rate at which your model learns from more recent experience.
 
 **Double Deep Q-Learning Networks (DDQN):** Instead of one network estimating Q and updating based on its own estimates, we use two networks, one for action selection and one for action evaluation. The rationale behind this is to avoid overestimation bias - since we are taking the maximum of estimated Q-values, our model tends to overestimate them. To elaborate, say the true Q-value for all actions equal 0 and our estimates are distributed such that some are greater than 0 and some are lower. The maximum of these estimates is obviously above 0 and hence, an overestimate. The solution is to use two separate models, the primary model and the target model. The primary model is updated at every step and used to select actions. The target model is used to estimate the maximum Q-value which are used to train the primary model. The parameters of the primary model are periodically copied (or averaged) over to the target model every so often (another parameter you can adjust), leading to more stable training. Here is experience replay and double DQN implemented in python:
+
 
 ```python
 # code was adapted from this [blog](https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/?completed=/deep-q-learning-dqn-reinforcement-learning-python-tutorial/)
@@ -120,6 +123,13 @@ if target_update_counter > UPDATE_TARGET_EVERY:
     target_update_counter = 0
 ```
 
-Hope the above helps you understand the concepts around reinforcement learning and DQNs and perhaps even helps you implement your own Reinforcement Learning project! Now I'll go into my Minesweeper agent.
+
+Hope the above helps you understand the concepts around DQNs and perhaps even helps you implement your own Reinforcement Learning project! Now I'll go into explaining my Minesweeper DQN agent.
 
 ## Using Reinforcement Learning to Beat Minesweeper <a name='MS'></a>
+
+The reward structure for my Minesweeper agent is as follows:
+
+<p align='center'>
+  <img src='figures/rewards.png' width='800'/>
+</p>
