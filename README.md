@@ -6,6 +6,12 @@ Of course, since this is a Reinforcement Learning project, the above statement s
   <img src="https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/before_after_train.gif"/>
 </p>  
 
+### Acknowledgments
+Some code in this repo were adapted from:
+- [Sentdex's Deep-Q Learning Tutorial Series](https://www.youtube.com/watch?v=yMk_XtIEzH8&ab_channel=sentdex)
+- [jakejhansen's Github Repo](https://github.com/jakejhansen/minesweeper_solver)
+
+
 ## Table of Contents
 1. [Introduction to Minesweeper](#intro)
 2. [Reinforcement Learning](#RL)
@@ -128,8 +134,34 @@ Hope the above helps you understand the concepts around DQNs and perhaps even he
 
 ## Using Reinforcement Learning to Beat Minesweeper <a name='MS'></a>
 
+Full implementation of my custom Minesweeper environment can be found in [MinesweeperAgent.py]().
+
+
+
 The reward structure for my Minesweeper agent is as follows:
 
 <p align='center'>
   <img src='figures/rewards.png' width='800'/>
 </p>
+
+> The red boxes indicate the most recent action taken. Progress is for moves that have at least one already revealed tile around them while guesses are moves that are completely isolated from revealed tiles.
+
+This reward structure is almost identical to the one used in [jakejhansen's Github Repo](https://github.com/jakejhansen/minesweeper_solver). A guess is given a negative reward because although it can reveal safe squares thereby contributing towards completing a board, it does so through luck rather than logic. My reward structure (and my agent) differs from the one referenced above by excluding non-progress moves (clicking on already revealed tiles) altogether. This speeds up training because the agent will not waste time learning to not click on already clicked-on squares. I do this by simply lowering the Q-values for already revealed squares to the minimum so that the agent will be guaranteed to pick the maximum Q-value among the unsolved squares:
+
+
+```python
+def get_action(self, state):
+  board = state.reshape(1, self.ntiles)
+  unsolved = [i for i, x in enumerate(board[0]) if x==-0.125]
+
+  rand = np.random.random() # random value b/w 0 & 1
+
+  if rand < self.epsilon: # random move (explore)
+      move = np.random.choice(unsolved)
+  else:
+      moves = self.model.predict(state.reshape((1, self.nrows, self.ncols, 1)))
+      moves[board!=-0.125] = np.min(moves) # set already clicked tiles to min value
+      move = np.argmax(moves)
+
+  return move
+```
