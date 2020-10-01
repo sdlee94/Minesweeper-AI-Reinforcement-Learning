@@ -49,7 +49,7 @@ I mentioned the Q-function. Well this is the core algorithm of Q-learning, and i
 
 
 <p align='center'>
-  <img src='bellman.png' width='500'/>
+  <img src='figures/q_function.png' width='500'/>
 </p>
 
 
