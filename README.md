@@ -141,7 +141,7 @@ My custom Minesweeper Agent class can be found in [MinesweeperAgent.py](). The M
 agent = MinesweeperAgent(9, 9, 10)
 ```
 
-The state of a Minesweeper board is represented as an image with dimensions being equal to that of the board. Number tiles are represented by integers ranging from 1 to 8. 0 represents an empty tile, -1 represents unknown and -2 represents a bomb. These integers are scaled to be between -1 and 1 by dividing by 8.
+The state of a Minesweeper board is represented as an image with dimensions being equal to that of the board. Number tiles are represented by integers ranging from 1 to 8. 0 represents an empty tile, -1 represents unknown and -2 represents a bomb. These integers are scaled to be between -1 and 1 by dividing by 8. Since the states can be treated as images, I used a convolutional neural network so that my model can learn local patterns regardless of where they are in the 'image'. Code for my neural network can be found [here](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/DQN.py). From trying out different numbers of layers/neurons, I decided on 4 convolutional layers of 128 neurons each followed by 2 fully connected dense layers of 512 neurons each (will expand on this more later).
 
 The reward structure for my Minesweeper agent is as follows:
 
@@ -173,3 +173,13 @@ def get_action(self, state):
 ```
 
 As in [Sentdex's Deep Q-learning tutorial](https://www.youtube.com/watch?v=t3fbETsIBCY&list=PLQVvvaa0QuDezJFIOU5wDdfy4e9vdnx-7&index=5&ab_channel=sentdex), I used a Tensorboard to track the performance of my models. The Tensorboard class was modified to *not* output a log file every time .fit() is called (default behaviour). If using Tensorflow version 2+ use [my_tensorboard2.py](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/my_tensorboard2.py), otherwise use [my_tensorboard.py](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/my_tensorboard.py).
+
+Here is an example of a Tensorboard output tracking the median reward obtained by different models. Here I'm keeping all parameters constant except for the number of neurons/layers in my convolutional network.
+
+
+<p align='center'>
+  <img src='figures/tensorboard.png'/>
+</p>
+
+
+> My agent was trained using neural networks of different sizes for a variable number of games (*i.e.* episodes). It appears that conv128x4_dense512x2 was able to learn the fastest hence I chose to go with this model.
