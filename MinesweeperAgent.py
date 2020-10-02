@@ -1,12 +1,18 @@
-import random
+import os, random
 import numpy as np
+import pandas as pd
 from collections import deque
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 from DQN import *
 # use my_tensorboard2.py if using tensorflow v2+, use my_tensorboard.py otherwise
 from my_tensorboard2 import *
 
 import warnings
 warnings.filterwarnings('ignore')
+
+ROOT = os.getcwd()
 
 # Environment settings
 MEM_SIZE = 50_000 # number of moves to store in replay buffer
@@ -28,8 +34,8 @@ EPSILON_DECAY = 0.99975
 EPSILON_MIN = 0.01
 
 # DQN settings
-CONV_UNITS = 64 # number of neurons in each conv layer
-DENSE_UNITS = 256 # number of neurons in fully connected dense layer
+CONV_UNITS = 32 # number of neurons in each conv layer
+DENSE_UNITS = 128 # number of neurons in fully connected dense layer
 UPDATE_TARGET_EVERY = 5
 
 MODEL_NAME = f'conv{CONV_UNITS}x4_dense{DENSE_UNITS}x2_y{DISCOUNT}_minlr{LEARN_MIN}'
@@ -222,7 +228,7 @@ class MinesweeperAgent(object):
 
     def get_action(self, state):
         board = state.reshape(1, self.ntiles)
-        unsolved = [i for i, x in enumerate(board[0]) if x==-1]
+        unsolved = [i for i, x in enumerate(board[0]) if x==-0.125]
 
         rand = np.random.random() # random value b/w 0 & 1
 
@@ -245,31 +251,28 @@ class MinesweeperAgent(object):
         self.click(action_index)
 
         # update state image
-        self.state_im = self.get_state_im(self.state)
+        new_state_im = self.get_state_im(self.state)
+        self.state_im = new_state_im
 
         if self.state[action_index]['value']=='B': # if lose
             reward = self.rewards['lose']
             done = True
-            progress = 'Lose'
 
         elif np.sum(new_state_im==-0.125) == self.n_mines: # if win
             reward = self.rewards['win']
             done = True
             self.n_progress += 1
             self.n_wins += 1
-            progress = 'Win! :D'
 
         else: # if progress
             if all(t==-0.125 for t in neighbors): # if guess (all neighbors are unsolved)
                 reward = self.rewards['guess']
-                progress = 'guess'
 
             else:
                 reward = self.rewards['progress']
                 self.n_progress += 1 # track n of non-isoloated clicks
-                progress = 'yes'
 
-        return self.state_im, reward, done, progress
+        return self.state_im, reward, done
 
     def update_replay_memory(self, transition):
         self.replay_memory.append(transition)

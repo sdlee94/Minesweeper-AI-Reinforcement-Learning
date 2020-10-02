@@ -1,33 +1,34 @@
 import argparse
 from tqdm import tqdm
 from keras.models import load_model
-from Minesweeper import *
+from MinesweeperAgent import *
 
 # intake MinesweeperEnv parameters, beginner mode by default
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a DQN to play Minesweeper')
-    parser.add_argument('-w', '--width', type=int, default=9,
+    parser.add_argument('--width', type=int, default=9,
                         help='width of the board')
-    parser.add_argument('-h', '--height', type=int, default=9,
+    parser.add_argument('--height', type=int, default=9,
                         help='height of the board')
-    parser.add_argument('-m', '--n_mines', type=int, default=10,
+    parser.add_argument('--n_mines', type=int, default=10,
                         help='Number of mines on the board')
+    parser.add_argument('--episodes', type=int, default=100_000,
+                        help='Number of episodes to train on')
 
     return parser.parse_args()
 
 params = parse_args()
 
-EPISODES = 100_000 # number of games to train on
 AGGREGATE_STATS_EVERY = 100 # calculate stats every 100 games for tensorboard
+SAVE_MODEL_EVERY = 10_000 # save model and replay every 10,000 episodes
 
 def main():
     agent = MinesweeperAgent(params.width, params.height, params.n_mines)
 
     progress_list, wins_list, ep_rewards = [], [], []
-    best = 6.0
     n_clicks = 0
-    progress_list, wins_list, ep_rewards = [], [], []
-    for episode in tqdm(range(0, params.episodes), unit='episode'):
+
+    for episode in tqdm(range(1, params.episodes+1), unit='episode'):
         agent.tensorboard.step = episode
 
         agent.reset()
@@ -40,11 +41,11 @@ def main():
 
             action = agent.get_action(current_state)
 
-            new_state, reward, done, progress = agent.step(action)
+            new_state, reward, done = agent.step(action)
 
             episode_reward += reward
 
-            agent.update_replay_memory((current_state, action, reward, new_state, done, progress))
+            agent.update_replay_memory((current_state, action, reward, new_state, done))
             agent.train(done, episode)
 
             n_clicks += 1
@@ -64,7 +65,6 @@ def main():
             med_progress = np.median(progress_list[-AGGREGATE_STATS_EVERY:])
             win_rate = np.sum(wins_list[-AGGREGATE_STATS_EVERY:]) / AGGREGATE_STATS_EVERY
             med_reward = np.median(ep_rewards[-AGGREGATE_STATS_EVERY:])
-            max_reward = np.max(ep_rewards[-AGGREGATE_STATS_EVERY:])
 
             agent.tensorboard.update_stats(
                 progress_med = med_progress,
@@ -73,10 +73,10 @@ def main():
                 learn_rate = agent.learn_rate,
                 epsilon = agent.epsilon)
 
-            # save model everytime median progress improves past 6.0
-            if med_progress > best:
-                best = max(med_progress, best)
-                agent.model.save(f'{ROOT}/models/{MODEL_NAME}_{best}.h5')
+        if not episode % SAVE_MODEL_EVERY:
+            agent.model.save(f'{ROOT}/models/{MODEL_NAME}_{best}.h5')
+            '''with open(f'replay/{MODEL_NAME}.pkl', 'wb') as output:
+                pickle.dump(agent.replay_memory, output)'''
 
             print(f'Episode: {episode}, n_clicks: {n_clicks}, Median progress: {med_progress}, Median reward: {med_reward}, Max reward : {max_reward}')
 
