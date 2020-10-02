@@ -209,6 +209,6 @@ To see your agent in action, go to [minesweeperonline.com](http://minesweeperonl
 
 Questions? You can reach me at:
 - stephendlee94@gmail.com
-- [my linkedin]https://www.linkedin.com/in/stephendongsoolee/
+- [my linkedin](https://www.linkedin.com/in/stephendongsoolee/)
 
 I have many other cool A.I. projects planned - be sure to follow me on LinkedIn to stay updated!
