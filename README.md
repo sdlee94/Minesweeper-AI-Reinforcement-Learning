@@ -132,6 +132,7 @@ if target_update_counter > UPDATE_TARGET_EVERY:
 
 Hope the above helps you understand the concepts around DQNs and perhaps even helps you implement your own Reinforcement Learning project! Now I'll go into explaining my Minesweeper DQN agent.
 
+
 ## Using Reinforcement Learning to Beat Minesweeper <a name='MS'></a>
 
 My custom Minesweeper Agent class can be found in [MinesweeperAgent.py](). The Minesweeper Agent is initialized by specifying the number of rows, columns and mines of the board it will play like so:
@@ -141,7 +142,7 @@ My custom Minesweeper Agent class can be found in [MinesweeperAgent.py](). The M
 agent = MinesweeperAgent(9, 9, 10)
 ```
 
-The state of a Minesweeper board is represented as an image with dimensions being equal to that of the board. Number tiles are represented by integers ranging from 1 to 8. 0 represents an empty tile, -1 represents unknown and -2 represents a bomb. These integers are scaled to be between -1 and 1 by dividing by 8. Since the states can be treated as images, I used a convolutional neural network so that my model can learn local patterns regardless of where they are in the 'image'. Code for my neural network can be found [here](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/DQN.py). From trying out different numbers of layers/neurons, I decided on 4 convolutional layers of 128 neurons each followed by 2 fully connected dense layers of 512 neurons each (will expand on this more later).
+The state of a Minesweeper board is represented as an image with dimensions being equal to that of the board. Number tiles are represented by integers ranging from 1 to 8. 0 represents an empty tile, -1 represents unknown and -2 represents a mine. These integers are scaled to be between -1 and 1 by dividing by 8. Since the states can be treated as images, I used a convolutional neural network so that my model can learn local patterns regardless of where they are in the 'image'. Code for my neural network can be found [here](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/DQN.py). From trying out different numbers of layers/neurons, I decided on 4 convolutional layers of 128 neurons each followed by 2 fully connected dense layers of 512 neurons each (will explain my choice later).
 
 The reward structure for my Minesweeper agent is as follows:
 
@@ -150,6 +151,7 @@ The reward structure for my Minesweeper agent is as follows:
 </p>
 
 > The red boxes indicate the most recent action taken. Progress is for moves that have at least one already revealed tile around them while guesses are moves that are completely isolated from revealed tiles.
+
 
 This reward structure is almost identical to the one used in [jakejhansen's Github Repo](https://github.com/jakejhansen/minesweeper_solver). A guess is given a negative reward because although it can reveal safe squares, it does so through luck rather than logic. My reward structure (and my agent) differs from the one referenced above by excluding non-progress moves (clicking on already revealed tiles) altogether. This speeds up training because the agent does not waste time learning to not click on already clicked-on squares. I do this by simply lowering the Q-values for already revealed squares to the minimum Q-value so that the agent will be guaranteed to pick the maximum Q-value among the unsolved squares:
 
@@ -174,7 +176,7 @@ def get_action(self, state):
 
 As in [Sentdex's Deep Q-learning tutorial](https://www.youtube.com/watch?v=t3fbETsIBCY&list=PLQVvvaa0QuDezJFIOU5wDdfy4e9vdnx-7&index=5&ab_channel=sentdex), I used a Tensorboard to track the performance of my models. The Tensorboard class was modified to *not* output a log file every time .fit() is called (default behaviour). If using Tensorflow version 2+ use [my_tensorboard2.py](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/my_tensorboard2.py), otherwise use [my_tensorboard.py](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/my_tensorboard.py).
 
-Here is an example of a Tensorboard output tracking the median reward obtained by different models. Here I'm keeping all parameters constant except for the number of neurons/layers in my convolutional network.
+Here is an example of a Tensorboard output tracking the median reward and win rate obtained by different models. Here I'm keeping all parameters constant except for the number of neurons/layers in my convolutional network.
 
 
 <p align='center'>
@@ -183,3 +185,30 @@ Here is an example of a Tensorboard output tracking the median reward obtained b
 
 
 > My agent was trained using neural networks of different sizes for a variable number of games (*i.e.* episodes). It appears that conv128x4_dense512x2 was able to learn the fastest hence I chose to go with this model.
+
+To open tensorboard run the following in anaconda prompt:
+
+```
+# cd into project directory and run
+tensorboard --logdir logs
+```
+
+
+Code for training can be found in [train.py]() which trains the agent on Beginner mode by default (can adjust nrows, ncolumns and nmines using the command line arguments).
+
+To see your agent in action, go to [minesweeperonline.com](http://minesweeperonline.com/#beginner), set the zoom level to 175% and set the game to be the same mode you trained on. [test.py]() uses the [pyautogui](https://pyautogui.readthedocs.io/en/latest/) package to detect objects on screen and gives the agent control of the mouse. (Make sure nothing covers the Minesweeper board on screen). Pyautogui uses the pictures in the [pics](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/tree/master/pics) folder for detection.
+
+> pyautogui's detection functionality is quite slow - this is why I made my own Minesweeper environment as opposed to training the agent by playing on the website.
+
+
+### Work in progress
+- Hyperparameter tuning: now that I've identified a good network size, I can try out different hyperparameters to achieve maximal performance.
+- Harder modes: So far, I've only trained my agent on Beginner mode.
+- Transfer learning: Could agents trained on Beginner mode play on harder modes through transfer learning? Rather than having to train a separate model from scratch on these other modes, maybe I can apply transfer learning (just need to replace the first layer to match the input size of the board).
+
+
+Questions? You can reach me at:
+- stephendlee94@gmail.com
+- [my linkedin]https://www.linkedin.com/in/stephendongsoolee/
+
+I have many other cool A.I. projects planned - be sure to follow me on LinkedIn to stay updated!
