@@ -39,7 +39,7 @@ Reinforcement Learning (RL) is an area of machine learning that aims to train a 
 
 So the goal of RL is for the **Agent** to learn an optimal **policy** by pursuing actions that return the greatest reward. There are several different types of RL algorithms. In this project, I used a **Deep Q-learning Network** (DQN).
 
-### What is a Deep Q-learning Network? <a name='DQN'></a>
+### What is Deep Q-learning? <a name='DQN'></a>
 
 First, let's define Q-learning. Q-learning involves having a reference table of Q-values (a Q-table) with all possible states as rows and all possible actions as columns. Actions are chosen based on the maximum quality-value ( **Q** ) for all possible actions in a given state ( **s** ). Q-values are initialized randomly (typically at 0) and are updated as the agent plays the game and observes rewards for its actions. Note that Q-values have no inherent meaning outside of the context of a specific Q-learning problem - they simply serve to compare the value of actions relative to each other.
 
@@ -194,9 +194,9 @@ tensorboard --logdir logs
 ```
 
 
-Code for training can be found in [train.py]() which trains the agent on Beginner mode by default (can adjust nrows, ncolumns and nmines using the command line arguments).
+Code for training can be found in [train.py](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/train.py) which trains the agent on Beginner mode by default (can adjust nrows, ncolumns and nmines using the command line arguments).
 
-To see your agent in action, go to [minesweeperonline.com](http://minesweeperonline.com/#beginner), set the zoom level to 175% and set the game to be the same mode you trained on. [test.py]() uses the [pyautogui](https://pyautogui.readthedocs.io/en/latest/) package to detect objects on screen and gives the agent control of the mouse. (Make sure nothing covers the Minesweeper board on screen). Pyautogui uses the pictures in the [pics](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/tree/master/pics) folder for detection.
+To see your agent in action, go to [minesweeperonline.com](http://minesweeperonline.com/#beginner), set the zoom level to 175% and set the game to be the same mode you trained on. [test.py](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/blob/master/test.py) uses the [pyautogui](https://pyautogui.readthedocs.io/en/latest/) package to detect objects on screen and gives the agent control of the mouse. (Make sure nothing covers the Minesweeper board on screen). Pyautogui uses the pictures in the [pics](https://github.com/sdlee94/Minesweeper-AI-Reinforcement-Learning/tree/master/pics) folder for detection.
 
 > pyautogui's detection functionality is quite slow - this is why I made my own Minesweeper environment as opposed to training the agent by playing on the website.
 
