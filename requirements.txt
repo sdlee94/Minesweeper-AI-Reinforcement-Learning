@@ -1,0 +1,4 @@
+python==3.6 or higher
+numpy, pandas, tqdm, pyautogui, opencv
+tensorflow-gpu==1.14.0 or higher
+keras-gpu==2.2.4 or higher
