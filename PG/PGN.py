@@ -1,5 +1,6 @@
-from keras.layers import Conv2D, Dense
-from keras.models import load_model
+from keras import backend as K
+from keras.models import Sequential
+from keras.layers import Conv2D, Dense, Flatten
 from keras.optimizers import Adam
 
 def create_policy_network(learn_rate, input_dims, n_actions, conv_units, dense_units):
