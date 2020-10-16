@@ -84,7 +84,7 @@ def main():
             with open(f'replay/{MODEL_NAME}.pkl', 'wb') as output:
                 pickle.dump(agent.replay_memory, output)
 
-            agent.model.save(f'models/{MODEL_NAME}_{best}.h5')
+            agent.model.save(f'models/{MODEL_NAME}.h5')
 
 if __name__ == "__main__":
     main()
