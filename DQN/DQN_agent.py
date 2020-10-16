@@ -2,7 +2,6 @@ import os, sys
 
 ROOT = os.getcwd()
 sys.path.insert(1, f'{os.path.dirname(ROOT)}')
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -38,7 +37,7 @@ UPDATE_TARGET_EVERY = 5
 MODEL_NAME = f'conv{CONV_UNITS}x4_dense{DENSE_UNITS}x2_y{DISCOUNT}_minlr{LEARN_MIN}'
 
 class DQNAgent(object):
-    def __init__(self, env, model_name=MODEL_NAME):
+    def __init__(self, env, model_name=MODEL_NAME, conv_units=64, dense_units=256):
         self.env = env
 
         # Deep Q-learning Parameters
@@ -46,11 +45,11 @@ class DQNAgent(object):
         self.learn_rate = learn_rate
         self.epsilon = epsilon
         self.model = create_dqn(
-            self.learn_rate, self.env.state_im.shape, self.env.ntiles, CONV_UNITS, DENSE_UNITS)
+            self.learn_rate, self.env.state_im.shape, self.env.ntiles, conv_units, dense_units)
 
         # target model - this is what we predict against every step
         self.target_model = create_dqn(
-            self.learn_rate, self.env.state_im.shape, self.env.ntiles, CONV_UNITS, DENSE_UNITS)
+            self.learn_rate, self.env.state_im.shape, self.env.ntiles, conv_units, dense_units)
         self.target_model.set_weights(self.model.get_weights())
 
         self.replay_memory = deque(maxlen=MEM_SIZE)
@@ -77,7 +76,7 @@ class DQNAgent(object):
     def update_replay_memory(self, transition):
         self.replay_memory.append(transition)
 
-    def train(self, done, episode):
+    def train(self, done):
         if len(self.replay_memory) < MEM_SIZE_MIN:
             return
 

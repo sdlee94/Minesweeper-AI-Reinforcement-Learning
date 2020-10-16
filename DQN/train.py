@@ -3,6 +3,8 @@ from tqdm import tqdm
 from keras.models import load_model
 from DQN_agent import *
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 # intake MinesweeperEnv parameters, beginner mode by default
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a DQN to play Minesweeper')
@@ -49,7 +51,7 @@ def main():
             episode_reward += reward
 
             agent.update_replay_memory((current_state, action, reward, new_state, done))
-            agent.train(done, episode)
+            agent.train(done)
 
             n_clicks += 1
 
@@ -76,7 +78,7 @@ def main():
                 learn_rate = agent.learn_rate,
                 epsilon = agent.epsilon)
 
-        print(f'Episode: {episode}, n_clicks: {n_clicks}, Median progress: {med_progress}, Median reward: {med_reward}, Max reward : {max_reward}')
+            print(f'Episode: {episode}, Median progress: {med_progress}, Median reward: {med_reward}, Win rate : {win_rate}')
 
         if not episode % SAVE_MODEL_EVERY:
             with open(f'replay/{MODEL_NAME}.pkl', 'wb') as output:

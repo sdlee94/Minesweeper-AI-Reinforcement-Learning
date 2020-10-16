@@ -2,11 +2,10 @@ import random
 import numpy as np
 import pandas as pd
 
-# based on https://github.com/jakejhansen/minesweeper_solver
-REWARDS = {'win':1, 'lose':-1, 'progress':0.3, 'guess':-0.3}
-
 class MinesweeperEnv(object):
-    def __init__(self, width, height, n_mines):
+    def __init__(self, width, height, n_mines,
+        # based on https://github.com/jakejhansen/minesweeper_solver
+        rewards={'win':1, 'lose':-1, 'progress':0.3, 'guess':-0.3, 'no_progress' : -0.3}):
         self.nrows, self.ncols = width, height
         self.ntiles = self.nrows * self.ncols
         self.n_mines = n_mines
@@ -17,7 +16,7 @@ class MinesweeperEnv(object):
         self.n_progress = 0
         self.n_wins = 0
 
-        self.rewards = REWARDS
+        self.rewards = rewards
 
     def init_grid(self):
         board = np.zeros((self.nrows, self.ncols), dtype='object')
@@ -116,8 +115,8 @@ class MinesweeperEnv(object):
 
         return f'color: {color}'
 
-    def draw_state(self):
-        state = self.state_im * 8.0
+    def draw_state(self, state_im):
+        state = state_im * 8.0
         state_df = pd.DataFrame(state.reshape((self.nrows, self.ncols)), dtype=np.int8)
 
         display(state_df.style.applymap(self.color_state))
@@ -178,6 +177,8 @@ class MinesweeperEnv(object):
         done = False
         coords = self.state[action_index]['coord']
 
+        current_state = self.state_im
+
         # get neighbors before action
         neighbors = self.get_neighbors(coords)
 
@@ -196,6 +197,9 @@ class MinesweeperEnv(object):
             done = True
             self.n_progress += 1
             self.n_wins += 1
+
+        elif np.sum(self.state_im == -0.125) == np.sum(current_state == -0.125):
+            reward = self.rewards['no_progress']
 
         else: # if progress
             if all(t==-0.125 for t in neighbors): # if guess (all neighbors are unsolved)
